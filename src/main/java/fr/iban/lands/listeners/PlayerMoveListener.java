@@ -34,19 +34,15 @@ public class PlayerMoveListener implements Listener {
 
         if (x == 0 && y == 0 && z == 0) return;
 
-        plugin.runAsyncQueued(() -> {
-            Land landFrom = landRepository.getLandAt(from);
-            Land landTo = landRepository.getLandAt(to);
+        Land landFrom = landRepository.getLandAt(from);
+        Land landTo = landRepository.getLandAt(to);
 
-            PlayerLandEnterEvent enter = new PlayerLandEnterEvent(player, landFrom, landTo);
+        PlayerLandEnterEvent enter = new PlayerLandEnterEvent(player, landFrom, landTo);
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Bukkit.getPluginManager().callEvent(enter);
+        Bukkit.getPluginManager().callEvent(enter);
 
-                if (enter.isCancelled()) {
-                    player.teleportAsync(from);
-                }
-            });
-        });
+        if (enter.isCancelled()) {
+            player.teleportAsync(from);
+        }
     }
 }

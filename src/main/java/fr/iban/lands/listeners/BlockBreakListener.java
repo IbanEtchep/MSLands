@@ -56,7 +56,7 @@ public class BlockBreakListener implements Listener {
                 Ageable age = (Ageable) bd;
 
                 if (age.getAge() == age.getMaximumAge()) {
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> block.setType(material), 1L);
+                    plugin.getScheduler().runLater(() -> block.setType(material), 1L);
                     return;
                 }
             }

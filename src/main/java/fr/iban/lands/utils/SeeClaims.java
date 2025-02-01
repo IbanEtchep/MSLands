@@ -52,7 +52,7 @@ public class SeeClaims {
      * Démarre la tâche de vérification de proximité
      */
     public void startProximityCheck() {
-        proximityTask = plugin.getScheduler().runTimer(() -> {
+        proximityTask = plugin.getScheduler().runAtEntityTimer(player, () -> {
             if (!player.isOnline()) {
                 stop();
                 return;

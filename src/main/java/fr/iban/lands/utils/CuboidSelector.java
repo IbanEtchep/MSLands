@@ -1,5 +1,6 @@
 package fr.iban.lands.utils;
 
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
@@ -9,14 +10,11 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class CuboidSelector {
 
@@ -26,7 +24,7 @@ public class CuboidSelector {
     private Location pos2;
 
     private final Runnable quitCallback;
-    private BukkitTask particleTask;
+    private WrappedTask particleTask;
 
     private final LandsPlugin plugin;
     private final LandRepository landRepository;
@@ -45,66 +43,57 @@ public class CuboidSelector {
     }
 
     public void startSelecting() {
-        player.sendMessage(
-                "§c§lAttention, le sous-territoire doit se trouver dans votre territoire pour fonctionner.");
+        player.sendMessage("§c§lAttention, le sous-territoire doit se trouver dans votre territoire pour fonctionner.");
         player.sendMessage(getHelpText());
         CoreBukkitPlugin plugin = CoreBukkitPlugin.getInstance();
-        plugin
-                .getTextInputs()
-                .put(
-                        player.getUniqueId(),
-                        component -> {
-                            String text = ChatUtils.toPlainText(component);
+        plugin.getTextInputs().put(player.getUniqueId(), component -> {
+            String text = ChatUtils.toPlainText(component);
 
-                            if (text.equalsIgnoreCase("pos1")) {
-                                cancelTask();
-                                pos1 = player.getLocation();
-                                player.sendMessage("§a§lPosition 1 définie.");
+            if (text.equalsIgnoreCase("pos1")) {
+                cancelTask();
+                pos1 = player.getLocation();
+                player.sendMessage("§a§lPosition 1 définie.");
 
-                                if(pos2 != null && pos2.getWorld() != pos1.getWorld()){
-                                    pos2 = null;
-                                }
+                if(pos2 != null && pos2.getWorld() != pos1.getWorld()){
+                    pos2 = null;
+                }
 
-                                Cuboid cuboid = getCuboid();
-                                if (cuboid != null) {
-                                    showParticules(cuboid);
-                                }
-                            } else if (text.equalsIgnoreCase("pos2")) {
-                                cancelTask();
-                                pos2 = player.getLocation();
-                                player.sendMessage("§a§lPosition 2 définie.");
+                Cuboid cuboid = getCuboid();
+                if (cuboid != null) {
+                    showParticules(cuboid);
+                }
+            } else if (text.equalsIgnoreCase("pos2")) {
+                cancelTask();
+                pos2 = player.getLocation();
+                player.sendMessage("§a§lPosition 2 définie.");
 
-                                if(pos1 != null && pos2.getWorld() != pos1.getWorld()){
-                                    pos1 = null;
-                                }
+                if(pos1 != null && pos2.getWorld() != pos1.getWorld()){
+                    pos1 = null;
+                }
 
-                                Cuboid cuboid = getCuboid();
-                                if (cuboid != null) {
-                                    showParticules(cuboid);
-                                }
-                            } else if (text.equalsIgnoreCase("sauvegarder")) {
-                                Cuboid cuboid = getCuboid();
-                                verif(cuboid)
-                                        .thenAcceptAsync(
-                                                valid -> {
-                                                    if (valid) {
-                                                        cancelTask();
-                                                        land.setCuboid(cuboid, LandsPlugin.getInstance().getServerName());
-                                                        landRepository.updateLand(land);
-                                                        player.sendMessage("§a§lLa selection a été sauvegardée avec succès.");
-                                                        Bukkit.getScheduler().runTask(plugin, quitCallback);
-                                                        plugin.getTextInputs().remove(player.getUniqueId());
-                                                    }
-                                                });
-                            } else if (text.startsWith("quit")) {
-                                cancelTask();
-                                quitCallback.run();
-                                plugin.getTextInputs().remove(player.getUniqueId());
-                            } else {
-                                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
-                                startSelecting();
-                            }
-                        });
+                Cuboid cuboid = getCuboid();
+                if (cuboid != null) {
+                    showParticules(cuboid);
+                }
+            } else if (text.equalsIgnoreCase("sauvegarder")) {
+                Cuboid cuboid = getCuboid();
+                boolean isValid = verif(cuboid);
+                if (isValid) {cancelTask();
+                    land.setCuboid(cuboid, LandsPlugin.getInstance().getServerName());
+                    landRepository.updateLand(land);
+                    player.sendMessage("§a§lLa selection a été sauvegardée avec succès.");
+                    quitCallback.run();
+                    plugin.getTextInputs().remove(player.getUniqueId());
+                }
+            } else if (text.startsWith("quit")) {
+                cancelTask();
+                quitCallback.run();
+                plugin.getTextInputs().remove(player.getUniqueId());
+            } else {
+                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
+                startSelecting();
+            }
+        });
     }
 
     private void cancelTask() {
@@ -156,28 +145,26 @@ public class CuboidSelector {
         return new Cuboid(pos1, pos2);
     }
 
-    private CompletableFuture<Boolean> verif(Cuboid cuboid) {
+    private boolean verif(Cuboid cuboid) {
         player.sendMessage("§a§lVérification de la sélection...");
-        return CompletableFuture.supplyAsync(() -> {
-            if (cuboid == null) {
-                if (pos1 == null) {
-                    player.sendMessage("§c§lLa position 1 n'a pas encore été définie !");
-                } else {
-                    player.sendMessage("§c§lLa position 2 n'a pas encore été définie !");
-                }
-                return false;
+        if (cuboid == null) {
+            if (pos1 == null) {
+                player.sendMessage("§c§lLa position 1 n'a pas encore été définie !");
+            } else {
+                player.sendMessage("§c§lLa position 2 n'a pas encore été définie !");
             }
+            return false;
+        }
 
-            if (landRepository.getLandAt(cuboid.getUpperSW().getChunk()) != landRepository.getLandAt(cuboid.getLowerNE().getChunk())) {
-                player.sendMessage(
-                        "§c§lLa selection doit se trouver dans le territoire "
-                                + land.getSuperLand().getName()
-                                + ".");
-                return false;
-            }
+        if (landRepository.getLandAt(cuboid.getUpperSW().getChunk()) != landRepository.getLandAt(cuboid.getLowerNE().getChunk())) {
+            player.sendMessage(
+                    "§c§lLa selection doit se trouver dans le territoire "
+                            + land.getSuperLand().getName()
+                            + ".");
+            return false;
+        }
 
-            return true;
-        });
+        return true;
     }
 
     private void showParticules(Cuboid cuboid) {
@@ -187,7 +174,7 @@ public class CuboidSelector {
             particleTask.cancel();
         }
 
-        particleTask = Bukkit.getScheduler().runTaskTimer(LandsPlugin.getInstance(), () -> {
+        particleTask = plugin.getScheduler().runTimer(() -> {
             for (Location location : edgeLocations) {
                 showParticle(location);
             }

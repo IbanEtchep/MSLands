@@ -1,5 +1,6 @@
 package fr.iban.lands.service;
 
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.api.LandService;
@@ -21,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class LandServiceImpl implements LandService {
 
@@ -122,19 +124,25 @@ public class LandServiceImpl implements LandService {
     public void claim(Player player, List<SChunk> chunks, Land land) {
         int TTChunks = chunks.size();
 
-        plugin.getScheduler().runTimerAsync(() -> {
+        AtomicReference<WrappedTask> taskRef = new AtomicReference<>();
+
+        taskRef.set(plugin.getScheduler().runTimerAsync(() -> {
             if (!chunks.isEmpty()) {
                 claim(chunks.getFirst(), land);
                 chunks.removeFirst();
 
                 if (chunks.size() % 50 == 0) {
                     int loadedChunks = TTChunks - chunks.size();
-                    player.sendMessage(String.format("§aProtection des chunks... (%d/%d) [%f%%]", loadedChunks, TTChunks, Math.round(loadedChunks * 100.0F / (TTChunks) * 10.0F) / 10.0F));
+                    player.sendMessage(String.format("§aProtection des chunks... (%d/%d) [%f%%]", loadedChunks, TTChunks, Math.round(loadedChunks * 100.0F / TTChunks * 10.0F) / 10.0F));
                 }
             } else {
-                player.sendMessage("§a§lLa selection a été protégée avec succès.");
+                player.sendMessage("§a§lLa sélection a été protégée avec succès.");
+                WrappedTask task = taskRef.get();
+                if (task != null) {
+                    task.cancel();
+                }
             }
-        }, 0L, 1L);
+        }, 0L, 1L));
     }
 
     @Override

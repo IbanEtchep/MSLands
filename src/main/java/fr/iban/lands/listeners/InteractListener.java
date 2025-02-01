@@ -72,7 +72,7 @@ public class InteractListener implements Listener {
                     if (!land.isBypassing(event.getPlayer(), Action.ALL) && !toClose.contains(block.getLocation())) {
                         boolean opened = openable.isOpen();
                         toClose.add(block.getLocation());
-                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        plugin.getScheduler().runAtLocationLater(block.getLocation(), () -> {
                             Openable o = (Openable) block.getBlockData();
                             o.setOpen(opened);
                             block.setBlockData(o);

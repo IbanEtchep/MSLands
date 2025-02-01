@@ -47,73 +47,70 @@ public class AreaSelector {
     public void startSelecting() {
         player.sendMessage(getHelpText());
         CoreBukkitPlugin core = CoreBukkitPlugin.getInstance();
-        core.getTextInputs()
-                .put(
-                        player.getUniqueId(),
-                        component -> {
-                            String text = ChatUtils.toPlainText(component);
+        core.getTextInputs().put(player.getUniqueId(), component -> {
+            String text = ChatUtils.toPlainText(component);
 
-                            if (text.equalsIgnoreCase("pos1")) {
-                                cancelTask();
-                                pos1 = player.getLocation();
-                                player.sendMessage("§a§lPosition 1 définie.");
+            if (text.equalsIgnoreCase("pos1")) {
+                cancelTask();
+                pos1 = player.getLocation();
+                player.sendMessage("§a§lPosition 1 définie.");
 
-                                Cuboid cuboid = getCuboid();
-                                if (cuboid != null) {
-                                    player.sendMessage(
-                                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
-                                    showParticules(cuboid);
-                                }
+                Cuboid cuboid = getCuboid();
+                if (cuboid != null) {
+                    player.sendMessage(
+                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
+                    showParticules(cuboid);
+                }
 
-                            } else if (text.equalsIgnoreCase("pos2")) {
-                                cancelTask();
-                                pos2 = player.getLocation();
-                                player.sendMessage("§a§lPosition 2 définie.");
+            } else if (text.equalsIgnoreCase("pos2")) {
+                cancelTask();
+                pos2 = player.getLocation();
+                player.sendMessage("§a§lPosition 2 définie.");
 
-                                Cuboid cuboid = getCuboid();
-                                if (cuboid != null) {
-                                    player.sendMessage(
-                                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
-                                    showParticules(cuboid);
-                                }
+                Cuboid cuboid = getCuboid();
+                if (cuboid != null) {
+                    player.sendMessage(
+                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
+                    showParticules(cuboid);
+                }
 
-                            } else if (text.equalsIgnoreCase("claim")) {
-                                Cuboid cuboid = getCuboid();
-                                verif(cuboid, true).thenAcceptAsync(valid -> {
-                                    if (valid) {
-                                        landService.claim(player, Objects.requireNonNull(cuboid).getSChunks(), land);
-                                    }
-                                });
-                            } else if (text.equalsIgnoreCase("unclaim")) {
-                                Cuboid cuboid = getCuboid();
-                                verif(cuboid, false).thenAcceptAsync(valid -> {
-                                    if (valid) {
-                                        for (SChunk chunk : Objects.requireNonNull(getCuboid()).getSChunks()) {
-                                            landService.unclaim(chunk);
-                                        }
+            } else if (text.equalsIgnoreCase("claim")) {
+                Cuboid cuboid = getCuboid();
+                verif(cuboid, true).thenAcceptAsync(valid -> {
+                    if (valid) {
+                        landService.claim(player, Objects.requireNonNull(cuboid).getSChunks(), land);
+                    }
+                });
+            } else if (text.equalsIgnoreCase("unclaim")) {
+                Cuboid cuboid = getCuboid();
+                verif(cuboid, false).thenAcceptAsync(valid -> {
+                    if (valid) {
+                        for (SChunk chunk : Objects.requireNonNull(getCuboid()).getSChunks()) {
+                            landService.unclaim(chunk);
+                        }
 
-                                        player.sendMessage("§aLa selection a été unclaim avec succès.");
-                                    }
-                                });
-                            } else if (player.hasPermission("lands.admin")
-                                    && text.equalsIgnoreCase("forceunclaim")) {
-                                if (arePosSet()) {
-                                    for (Chunk chunk : Objects.requireNonNull(getCuboid()).getChunks()) {
-                                        landService.unclaim(chunk);
-                                    }
-                                    player.sendMessage("§a§lLa selection a été unclaim avec succès.");
-                                } else {
-                                    player.sendMessage("§c§lIl faut définir les deux positions !");
-                                }
-                            } else if (text.startsWith("quit")) {
-                                quitCallback.run();
-                                core.getTextInputs().remove(player.getUniqueId());
-                                cancelTask();
-                            } else {
-                                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
-                                startSelecting();
-                            }
-                        });
+                        player.sendMessage("§aLa selection a été unclaim avec succès.");
+                    }
+                });
+            } else if (player.hasPermission("lands.admin")
+                    && text.equalsIgnoreCase("forceunclaim")) {
+                if (arePosSet()) {
+                    for (Chunk chunk : Objects.requireNonNull(getCuboid()).getChunks()) {
+                        landService.unclaim(chunk);
+                    }
+                    player.sendMessage("§a§lLa selection a été unclaim avec succès.");
+                } else {
+                    player.sendMessage("§c§lIl faut définir les deux positions !");
+                }
+            } else if (text.startsWith("quit")) {
+                quitCallback.run();
+                core.getTextInputs().remove(player.getUniqueId());
+                cancelTask();
+            } else {
+                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
+                startSelecting();
+            }
+        });
     }
 
     private void cancelTask() {
@@ -182,13 +179,11 @@ public class AreaSelector {
         Cuboid cuboid = new Cuboid(pos1, pos2);
 
         return new Cuboid(
-                cuboid.getLowerNE()
-                        .getChunk()
+                cuboid.getLowerNE().getChunk()
                         .getBlock(0, cuboid.getWorld().getMinHeight(), 0)
                         .getLocation(),
-                cuboid.getUpperSW()
-                        .getChunk()
-                        .getBlock(15, cuboid.getWorld().getMaxHeight(), 15)
+                cuboid.getUpperSW().getChunk()
+                        .getBlock(15, cuboid.getWorld().getMaxHeight() - 1, 15)
                         .getLocation());
     }
 
