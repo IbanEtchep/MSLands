@@ -6,7 +6,7 @@ core-paper = "1.1.0"
 com-github-milkbowl-vaultapi = "1.7.1"
 msguilds = "1.1.0"
 io-papermc-paper-paper-api = "1.21.1-R0.1-SNAPSHOT"
-folialib = "main-SNAPSHOT"
+folialib = "0.5.1"
 packetevents = "2.6.0"
 
 [libraries]
@@ -17,5 +17,5 @@ corePaper = { module = "com.github.IbanEtchep.MSCore:core-paper", version.ref = 
 com-github-milkbowl-vaultapi = { module = "com.github.MilkBowl:VaultAPI", version.ref = "com-github-milkbowl-vaultapi" }
 msguilds = { module = "com.github.IbanEtchep:MSGuilds", version.ref = "msguilds" }
 io-papermc-paper-paper-api = { module = "io.papermc.paper:paper-api", version.ref = "io-papermc-paper-paper-api" }
-folialib = { module = "com.github.technicallycoded:FoliaLib", version.ref = "folialib" }
+folialib = { module = "com.tcoded:FoliaLib", version.ref = "folialib" }
 packetevents = { module = "com.github.retrooper:packetevents-spigot", version.ref = "packetevents" }
