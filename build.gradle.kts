@@ -19,6 +19,7 @@ repositories {
     maven { url = uri("https://jitpack.io/") }
     maven { url = uri("https://repo.maven.apache.org/maven2/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
+    maven { url = uri("https://repo.tcoded.com/releases") }
 }
 
 dependencies {
