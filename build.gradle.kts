@@ -23,16 +23,17 @@ repositories {
 }
 
 dependencies {
-    compileOnly(libs.io.papermc.paper.paper.api)
-    compileOnly(libs.corePaper)
-    compileOnly(libs.msguilds)
-    compileOnly(libs.com.ghostchu.quickshop.api)
-    compileOnly(libs.com.ghostchu.quickshop.bukkit)
-    compileOnly(libs.com.arcaniax.headdatabase.api)
-    compileOnly(libs.com.github.milkbowl.vaultapi)
-    compileOnly(libs.packetevents)
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("com.github.IbanEtchep.MSCore:core-paper:1.1.0")
+    compileOnly("com.github.IbanEtchep:MSGuilds:1.1.0")
+    compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
+    compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
+    compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
+    compileOnly("com.github.retrooper:packetevents-spigot:2.6.0")
 
-    implementation(libs.folialib)
+    implementation("com.tcoded:FoliaLib:0.5.1")
+    implementation("net.objecthunter:exp4j:0.4.8")
 }
 
 publishing {
@@ -44,6 +45,7 @@ publishing {
 tasks.shadowJar {
     archiveClassifier.set("")
     relocate("com.tcoded.folialib", "fr.iban.libs.folialib")
+    relocate("net.objecthunter.exp4j", "fr.iban.libs.exp4j")
 }
 
 tasks.processResources {

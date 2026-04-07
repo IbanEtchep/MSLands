@@ -6,10 +6,7 @@ import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.bukkitcore.commands.CoreCommandHandlerVisitor;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.api.LandService;
-import fr.iban.lands.commands.LandCommand;
-import fr.iban.lands.commands.LandsCommand;
-import fr.iban.lands.commands.MaxClaimsCommand;
-import fr.iban.lands.commands.MiscellaneousCommands;
+import fr.iban.lands.commands.*;
 import fr.iban.lands.commands.parametertypes.LandParameterType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.guild.GuildsDataAccess;
@@ -126,6 +123,7 @@ public final class LandsPlugin extends JavaPlugin {
 
         lamp.register(new LandCommand(this));
         lamp.register(new LandsCommand(this));
+        lamp.register(new GuildClaimsCommand(this));
         lamp.register(new MaxClaimsCommand(this));
         lamp.register(new MiscellaneousCommands());
     }

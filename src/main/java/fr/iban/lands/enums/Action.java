@@ -42,7 +42,8 @@ public enum Action {
     CAULDRON_FILL_EMPTY("Remplir/vider un chaudron", new ItemStack(Material.CAULDRON), ActionGroup.BUILDING),
     VEHICLE_PLACE_BREAK("Poser/casser des véhicules (bateaux, minecarts)", new ItemStack(Material.MINECART), ActionGroup.BUILDING),
     CHANGE_BEACON_EFFECT("Changer l'effet des balises", new ItemStack(Material.BEACON), ActionGroup.USE),
-    SIGN_EDIT("Modifier les pancartes", new ItemStack(Material.OAK_SIGN), ActionGroup.INTERACT);
+    SIGN_EDIT("Modifier les pancartes", new ItemStack(Material.OAK_SIGN), ActionGroup.INTERACT),
+    SHELF_INTERACT("Interactions avec les étagères", new ItemStack(Material.OAK_SHELF), ActionGroup.INTERACT);
 
     private final String displayName;
     private final ItemStack item;

@@ -184,12 +184,8 @@ public class LandMainMenu extends PaginatedMenu {
                     .addLore("§f§lTronçons utilisés : §a" + count + "/" + maxCount);
 
             if (landType == LandType.GUILD) {
-                int personalCount = landRepository.getChunkCount(player.getUniqueId());
-                int personalMaxCount = landRepository.getMaxChunkCount(player.getUniqueId());
-                itemBuilder.addLore("§f§lTronçons personnels : §a" + personalCount + "/" + personalMaxCount);
-
-                itemBuilder.addLore("§7Si la guilde n'a plus de tronçons, vos ");
-                itemBuilder.addLore("§7tronçons personnels seront utilisés.");
+                itemBuilder.addLore("§7Pour acheter des claims de guilde, ");
+                itemBuilder.addLore("§7utilisez la commande /guildclaims");
             }
 
             return itemBuilder.build();

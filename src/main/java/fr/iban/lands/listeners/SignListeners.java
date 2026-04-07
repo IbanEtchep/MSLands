@@ -21,7 +21,7 @@ public class SignListeners implements Listener {
     public void onSignChange(SignChangeEvent event) {
         Player player = event.getPlayer();
         Land land = landRepository.getLandAt(event.getBlock().getLocation());
-        if (land != null && !land.isBypassing(player, Action.SIGN_EDIT)) {
+        if (!land.isBypassing(player, Action.SIGN_EDIT)) {
             event.setCancelled(true);
         }
     }

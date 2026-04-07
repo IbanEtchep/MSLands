@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import static java.lang.Math.max;
-
 @Command({"land", "l"})
 public class LandCommand {
 

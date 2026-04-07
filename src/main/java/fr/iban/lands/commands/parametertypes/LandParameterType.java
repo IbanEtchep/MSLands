@@ -23,7 +23,7 @@ public class LandParameterType implements ParameterType<BukkitCommandActor, Land
     }
 
     @Override
-    public Land parse(@NotNull MutableStringStream input, @NotNull ExecutionContext<@NotNull BukkitCommandActor> executionContext) {
+    public Land parse(@NotNull MutableStringStream input, @NotNull ExecutionContext<BukkitCommandActor> executionContext) {
         String value = input.readString();
         BukkitCommandActor actor = executionContext.actor();
         Player sender = actor.asPlayer();
@@ -42,7 +42,7 @@ public class LandParameterType implements ParameterType<BukkitCommandActor, Land
     }
 
     @Override
-    public @NotNull SuggestionProvider<@NotNull BukkitCommandActor> defaultSuggestions() {
+    public @NotNull SuggestionProvider<BukkitCommandActor> defaultSuggestions() {
         return (context) -> {
             Player player = context.actor().asPlayer();
 

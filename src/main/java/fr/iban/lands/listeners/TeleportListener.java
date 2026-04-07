@@ -33,7 +33,7 @@ public class TeleportListener implements Listener {
         Player player = event.getPlayer();
         PlayerTeleportEvent.TeleportCause cause = event.getCause();
 
-        if (cause == PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT
+        if (cause == PlayerTeleportEvent.TeleportCause.CONSUMABLE_EFFECT
                 && !landTo.isBypassing(player, Action.CHORUS_TELEPORT)) {
             event.setCancelled(true);
             return;
