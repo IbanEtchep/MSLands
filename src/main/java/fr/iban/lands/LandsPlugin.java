@@ -3,7 +3,6 @@ package fr.iban.lands;
 import com.tcoded.folialib.FoliaLib;
 import com.tcoded.folialib.impl.PlatformScheduler;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
-import fr.iban.bukkitcore.commands.CoreCommandHandlerVisitor;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.api.LandService;
 import fr.iban.lands.commands.*;
@@ -28,7 +27,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import revxrsal.commands.Lamp;
 import revxrsal.commands.bukkit.BukkitLamp;
-import revxrsal.commands.bukkit.BukkitLampConfig;
+
 import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 import java.util.*;
@@ -114,12 +113,9 @@ public final class LandsPlugin extends JavaPlugin {
     }
 
     private void registerCommands() {
-        Lamp<BukkitCommandActor> lamp =  BukkitLamp.builder(this)
+        Lamp<BukkitCommandActor> lamp = BukkitLamp.builder(this)
                 .parameterTypes(builder -> builder.addParameterType(Land.class, new LandParameterType(this)))
-                .accept(new CoreCommandHandlerVisitor(CoreBukkitPlugin.getInstance()).visitor())
                 .build();
-
-        BukkitLampConfig.builder(this).disableBrigadier().build();
 
         lamp.register(new LandCommand(this));
         lamp.register(new LandsCommand(this));
