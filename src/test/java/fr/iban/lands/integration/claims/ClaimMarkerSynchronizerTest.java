@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -83,6 +84,18 @@ class ClaimMarkerSynchronizerTest {
 
         assertEquals(Set.of("world/chunk:4:-2", "world_nether/chunk:-1:3"), sink.putKeys());
         assertTrue(sink.removedKeys().isEmpty());
+    }
+
+    @Test
+    void noOpVisualizationAcceptsEveryLifecycleCall() {
+        ClaimVisualization visualization = ClaimVisualization.noop();
+
+        assertDoesNotThrow(() -> {
+            visualization.rebuild();
+            visualization.syncChunk(chunk);
+            visualization.syncLand(playerLand);
+            visualization.close();
+        });
     }
 
     private BlueMapSettings settings() {

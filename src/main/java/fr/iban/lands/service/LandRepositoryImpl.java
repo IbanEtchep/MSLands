@@ -122,7 +122,9 @@ public class LandRepositoryImpl implements LandRepository {
 
     @Override
     public void deleteLand(Land land) {
-        getChunks(land).forEach(chunks::remove);
+        List<SChunk> deletedChunks = List.copyOf(getChunks(land));
+        deletedChunks.forEach(chunks::remove);
+        deletedChunks.forEach(plugin.getClaimVisualization()::syncChunk);
 
         if (land.hasSubLand()) {
             for (SubLand subland : land.getSubLands().values()) {

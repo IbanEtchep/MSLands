@@ -44,7 +44,9 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("de.bluecolored:bluemap-api:2.7.7")
+    testCompileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testRuntimeOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testRuntimeOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

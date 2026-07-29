@@ -9,6 +9,8 @@ import fr.iban.lands.commands.*;
 import fr.iban.lands.commands.parametertypes.LandParameterType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.guild.GuildsDataAccess;
+import fr.iban.lands.integration.bluemap.BlueMapClaimVisualization;
+import fr.iban.lands.integration.claims.ClaimVisualization;
 import fr.iban.lands.listeners.*;
 import fr.iban.lands.model.land.Land;
 import fr.iban.lands.service.LandRepositoryImpl;
@@ -47,6 +49,7 @@ public final class LandsPlugin extends JavaPlugin {
     private LandRepository landRepository;
 
     private LandService landService;
+    private ClaimVisualization claimVisualization = ClaimVisualization.noop();
 
     private final Map<UUID, SeeClaims> seeClaims = new HashMap<>();
     private LandMap landMap;
@@ -68,6 +71,7 @@ public final class LandsPlugin extends JavaPlugin {
 
         setupEconomy();
         hookGuilds();
+        setupClaimVisualization();
 
         registerCommands();
 
@@ -108,8 +112,19 @@ public final class LandsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        claimVisualization.close();
         singleThreadExecutor.shutdown();
         seeClaims.values().forEach(SeeClaims::stop);
+    }
+
+    private void setupClaimVisualization() {
+        if (!getConfig().getBoolean("bluemap.enabled", true)
+                || !getServer().getPluginManager().isPluginEnabled("BlueMap")) {
+            return;
+        }
+
+        claimVisualization = BlueMapClaimVisualization.create(this);
+        getLogger().info("Intégration BlueMap effectuée.");
     }
 
     private void registerCommands() {
@@ -233,6 +248,10 @@ public final class LandsPlugin extends JavaPlugin {
 
     public LandService getLandService() {
         return landService;
+    }
+
+    public ClaimVisualization getClaimVisualization() {
+        return claimVisualization;
     }
 
     public LandMap getLandMap() {

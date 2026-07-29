@@ -111,6 +111,7 @@ public class LandServiceImpl implements LandService {
 
         land.setName(name);
         landRepository.updateLand(land);
+        plugin.getClaimVisualization().syncLand(land);
         player.sendMessage("§aLe nom du territoire a bien été modifié.");
     }
 
@@ -118,6 +119,7 @@ public class LandServiceImpl implements LandService {
     public void claim(SChunk chunk, Land land) {
         chunk.setCreatedAt(new Date());
         landRepository.addChunk(chunk, land);
+        plugin.getClaimVisualization().syncChunk(chunk);
     }
 
     @Override
@@ -195,6 +197,7 @@ public class LandServiceImpl implements LandService {
     @Override
     public void unclaim(SChunk chunk) {
         landRepository.removeChunk(chunk);
+        plugin.getClaimVisualization().syncChunk(chunk);
     }
 
     private boolean hasEnouphClaims(Player player, Land land) {
