@@ -111,6 +111,7 @@ buildNumber.properties
 
 # Common working directory
 run/
+.worktrees/
 
 # Gradle
 .gradle/
