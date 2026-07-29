@@ -20,6 +20,7 @@ repositories {
     maven { url = uri("https://repo.maven.apache.org/maven2/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
     maven { url = uri("https://repo.tcoded.com/releases") }
+    maven { url = uri("https://repo.bluecolored.de/releases") }
 }
 
 dependencies {
@@ -31,12 +32,18 @@ dependencies {
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("com.github.retrooper:packetevents-spigot:2.6.0")
+    compileOnly("de.bluecolored:bluemap-api:2.7.7")
 
     implementation("com.tcoded:FoliaLib:0.5.1")
     implementation("net.objecthunter:exp4j:0.4.8")
     implementation("io.github.revxrsal:lamp.common:4.0.0-rc.16")
     implementation("io.github.revxrsal:lamp.bukkit:4.0.0-rc.16")
     implementation("io.github.revxrsal:lamp.brigadier:4.0.0-rc.16")
+
+    testImplementation(platform("org.junit:junit-bom:5.14.3"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.mockito:mockito-core:5.23.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 publishing {
@@ -66,4 +73,8 @@ tasks.withType<JavaCompile>() {
 
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
