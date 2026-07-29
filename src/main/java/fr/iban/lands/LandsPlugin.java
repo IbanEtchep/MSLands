@@ -124,7 +124,12 @@ public final class LandsPlugin extends JavaPlugin {
         }
 
         claimVisualization = BlueMapClaimVisualization.create(this);
+        queueInitialClaimVisualizationRebuild();
         getLogger().info("Intégration BlueMap effectuée.");
+    }
+
+    void queueInitialClaimVisualizationRebuild() {
+        runAsyncQueued(claimVisualization::rebuild);
     }
 
     private void registerCommands() {
