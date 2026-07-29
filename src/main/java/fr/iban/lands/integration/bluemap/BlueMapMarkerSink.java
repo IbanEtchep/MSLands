@@ -21,6 +21,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     private final BlueMapMapResolver mapResolver;
     private final Logger logger;
     private volatile BlueMapAPI activeApi;
+    private boolean closed;
 
     public BlueMapMarkerSink(
             BlueMapSettings settings,
@@ -34,23 +35,30 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         this.logger = Objects.requireNonNull(logger);
     }
 
-    public void attach(BlueMapAPI api) {
+    public synchronized void attach(BlueMapAPI api) {
+        if (closed) {
+            return;
+        }
         activeApi = Objects.requireNonNull(api);
     }
 
-    public void detach(BlueMapAPI api) {
+    public synchronized void detach(BlueMapAPI api) {
         if (activeApi == api) {
             activeApi = null;
         }
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         BlueMapAPI api = activeApi;
         if (api == null) {
             return;
         }
 
+        clear(api);
+    }
+
+    private void clear(BlueMapAPI api) {
         for (BlueMapMap map : api.getMaps()) {
             try {
                 map.getMarkerSets().remove(MARKER_SET_ID);
@@ -66,7 +74,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     }
 
     @Override
-    public void put(ClaimMarkerDescriptor marker) {
+    public synchronized void put(ClaimMarkerDescriptor marker) {
         BlueMapAPI api = activeApi;
         if (api == null) {
             return;
@@ -88,7 +96,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     }
 
     @Override
-    public void remove(String world, String markerId) {
+    public synchronized void remove(String world, String markerId) {
         BlueMapAPI api = activeApi;
         if (api == null) {
             return;
@@ -113,9 +121,17 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     }
 
     @Override
-    public void close() {
-        clear();
+    public synchronized void close() {
+        if (closed) {
+            return;
+        }
+
+        closed = true;
+        BlueMapAPI api = activeApi;
         activeApi = null;
+        if (api != null) {
+            clear(api);
+        }
     }
 
     private MarkerSet markerSet(BlueMapMap map) {

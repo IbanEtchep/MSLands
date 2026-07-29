@@ -20,8 +20,26 @@ import java.util.function.Consumer;
 
 public final class BlueMapClaimVisualization implements ClaimVisualization {
 
+    private static final ListenerRegistry BLUE_MAP_LISTENERS = new ListenerRegistry() {
+        @Override
+        public void onEnable(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.onEnable(listener);
+        }
+
+        @Override
+        public void onDisable(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.onDisable(listener);
+        }
+
+        @Override
+        public void unregister(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.unregisterListener(listener);
+        }
+    };
+
     private final BlueMapMarkerSink sink;
     private final ClaimMarkerSynchronizer synchronizer;
+    private final ListenerRegistry listeners;
     private final Consumer<BlueMapAPI> onEnable;
     private final Consumer<BlueMapAPI> onDisable;
 
@@ -29,15 +47,24 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
             BlueMapMarkerSink sink,
             ClaimMarkerSynchronizer synchronizer
     ) {
+        this(sink, synchronizer, BLUE_MAP_LISTENERS);
+    }
+
+    BlueMapClaimVisualization(
+            BlueMapMarkerSink sink,
+            ClaimMarkerSynchronizer synchronizer,
+            ListenerRegistry listeners
+    ) {
         this.sink = Objects.requireNonNull(sink);
         this.synchronizer = Objects.requireNonNull(synchronizer);
+        this.listeners = Objects.requireNonNull(listeners);
         this.onEnable = api -> {
             sink.attach(api);
             synchronizer.rebuild();
         };
         this.onDisable = sink::detach;
-        BlueMapAPI.onEnable(onEnable);
-        BlueMapAPI.onDisable(onDisable);
+        listeners.onEnable(onEnable);
+        listeners.onDisable(onDisable);
     }
 
     public static BlueMapClaimVisualization create(LandsPlugin plugin) {
@@ -83,8 +110,8 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
 
     @Override
     public void close() {
-        BlueMapAPI.unregisterListener(onEnable);
-        BlueMapAPI.unregisterListener(onDisable);
+        listeners.unregister(onEnable);
+        listeners.unregister(onDisable);
         synchronizer.close();
     }
 
@@ -106,5 +133,14 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
 
         String playerName = Bukkit.getOfflinePlayer(owner).getName();
         return playerName == null ? owner.toString() : playerName;
+    }
+
+    interface ListenerRegistry {
+
+        void onEnable(Consumer<BlueMapAPI> listener);
+
+        void onDisable(Consumer<BlueMapAPI> listener);
+
+        void unregister(Consumer<BlueMapAPI> listener);
     }
 }

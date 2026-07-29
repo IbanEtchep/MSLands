@@ -15,6 +15,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -25,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -187,7 +198,105 @@ class BlueMapMarkerSinkTest {
         );
     }
 
+    @Test
+    void concurrentReplacementAndStaleDetachNeverDiscardNewApi() throws Exception {
+        BlueMapAPI oldApi = mock(BlueMapAPI.class);
+        BlueMapAPI newApi = mock(BlueMapAPI.class);
+        AtomicReference<BlueMapAPI> resolvedApi = new AtomicReference<>();
+        BlueMapMap map = map("surface", new HashMap<>());
+        BlueMapMapResolver recordingResolver = new BlueMapMapResolver() {
+            @Override
+            public Collection<BlueMapMap> resolve(BlueMapAPI api, String worldName) {
+                resolvedApi.set(api);
+                return List.of(map);
+            }
+        };
+        BlueMapMarkerSink sink = sink(false, recordingResolver);
+        int iterations = 5_000;
+        CyclicBarrier barrier = new CyclicBarrier(3);
+        AtomicInteger staleTransitions = new AtomicInteger();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<?> attaches = executor.submit(() -> repeat(iterations, barrier, () -> sink.attach(newApi)));
+            Future<?> detaches = executor.submit(() -> repeat(iterations, barrier, () -> sink.detach(oldApi)));
+
+            for (int iteration = 0; iteration < iterations; iteration++) {
+                sink.attach(oldApi);
+                resolvedApi.set(null);
+                barrier.await();
+                barrier.await();
+                sink.remove("world", "chunk:2:-3");
+                if (resolvedApi.get() != newApi) {
+                    staleTransitions.incrementAndGet();
+                }
+            }
+
+            attaches.get();
+            detaches.get();
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertEquals(0, staleTransitions.get());
+    }
+
+    @Test
+    void closeWaitsForInFlightWriteThenRemovesItsMarker() throws Exception {
+        Map<String, MarkerSet> markerSets = new HashMap<>();
+        BlueMapMap map = map("surface", markerSets);
+        when(api.getMaps()).thenReturn(List.of(map));
+        var writeEntered = new CountDownLatch(1);
+        var releaseWrite = new CountDownLatch(1);
+        BlueMapMapResolver blockingResolver = new BlueMapMapResolver() {
+            @Override
+            public Collection<BlueMapMap> resolve(BlueMapAPI ignored, String worldName) {
+                writeEntered.countDown();
+                await(releaseWrite);
+                return List.of(map);
+            }
+        };
+        BlueMapMarkerSink sink = sink(false, blockingResolver);
+        sink.attach(api);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<?> write = executor.submit(() -> sink.put(descriptor("chunk:2:-3")));
+            assertTrue(writeEntered.await(1, TimeUnit.SECONDS));
+            Future<?> close = executor.submit(sink::close);
+
+            assertThrows(TimeoutException.class, () -> close.get(100, TimeUnit.MILLISECONDS));
+
+            releaseWrite.countDown();
+            write.get(1, TimeUnit.SECONDS);
+            close.get(1, TimeUnit.SECONDS);
+            assertFalse(markerSets.containsKey("mslands-claims"));
+        } finally {
+            releaseWrite.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void closeDiscardsApiEvenWhenCleanupFails() {
+        Map<String, MarkerSet> markerSets = new HashMap<>();
+        BlueMapMap map = map("surface", markerSets);
+        when(resolver.resolve(api, "world")).thenReturn(List.of(map));
+        when(api.getMaps()).thenThrow(new IllegalStateException("maps unavailable"));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        assertThrows(IllegalStateException.class, sink::close);
+        sink.put(descriptor("chunk:2:-3"));
+
+        assertTrue(markerSets.isEmpty());
+    }
+
     private BlueMapMarkerSink sink(boolean defaultHidden) {
+        return sink(defaultHidden, resolver);
+    }
+
+    private BlueMapMarkerSink sink(boolean defaultHidden, BlueMapMapResolver mapResolver) {
         ClaimMarkerStyle style = new ClaimMarkerStyle(
                 new RgbColor(52, 152, 219),
                 new RgbColor(52, 152, 219),
@@ -203,7 +312,7 @@ class BlueMapMarkerSinkTest {
         return new BlueMapMarkerSink(
                 settings,
                 new BlueMapShapeMarkerFactory(settings.lineWidth()),
-                resolver,
+                mapResolver,
                 logger
         );
     }
@@ -235,5 +344,26 @@ class BlueMapMarkerSinkTest {
                         0.35F
                 )
         );
+    }
+
+    private void repeat(int iterations, CyclicBarrier barrier, Runnable action) {
+        try {
+            for (int iteration = 0; iteration < iterations; iteration++) {
+                barrier.await();
+                action.run();
+                barrier.await();
+            }
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    private void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(exception);
+        }
     }
 }
