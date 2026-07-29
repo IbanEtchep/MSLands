@@ -42,7 +42,8 @@ Each claimed chunk is represented by one BlueMap `ShapeMarker` at Y coordinate
 `64`. The marker is a rectangle covering the exact block area from
 `(chunkX * 16, chunkZ * 16)` to `(chunkX * 16 + 16, chunkZ * 16 + 16)`. Using
 the exclusive upper boundary prevents one-block gaps and overlaps between
-neighboring chunks.
+neighboring chunks. Depth testing is disabled so terrain above Y 64 cannot hide
+the overlay.
 
 Marker identifiers use `chunk:<chunk-x>:<chunk-z>`, which is deterministic and
 collision-free within a map because only one land can own a chunk. This allows
@@ -68,25 +69,28 @@ Dynamic text is HTML-escaped before being passed to BlueMap.
 
 ## Synchronization
 
-The initial full rebuild reads the repository's cached chunk-to-land map and
-does not load Bukkit chunks.
-
-`PlayerChunkClaimEvent` and `PlayerChunkUnclaimEvent` are emitted before the
-repository mutation completes. The BlueMap listener therefore schedules a
-one-tick-later synchronization for the affected `SChunk`, following the
-existing `SeeClaims` update pattern. At execution time it reads the final state
-from `LandRepository`:
+The integration is exposed to the rest of MSLands through a
+BlueMap-independent `ClaimVisualization` interface. Its no-op implementation is
+used when BlueMap is absent or disabled. The BlueMap implementation reads the
+repository only after mutations complete:
 
 - if the chunk belongs to a supported land, the marker is inserted or replaced;
 - if the chunk is wilderness, the marker is removed.
 
-This makes synchronization respect cancellations and other listeners that
-affect the operation. A claim in a world with no BlueMap map is ignored.
+`LandService` invokes this synchronization after its primitive claim and
+unclaim methods mutate the repository. This covers player operations, bulk
+claims, and direct service calls without reacting to cancellable pre-events.
+`LandRepository#deleteLand` captures the land's chunks before removing them and
+then removes their markers, covering both command and menu deletion paths. A
+claim in a world with no BlueMap map is ignored.
 
 Land renames are persisted through `LandService#renameLand`. After a successful
-rename, the service emits a BlueMap-independent `PlayerLandRenameEvent`
-containing the renamed land. The integration listens to this event and refreshes
-every marker belonging to that land so labels and details remain current.
+rename, the service invokes `ClaimVisualization#syncLand(Land)` so every marker
+belonging to that land receives the current label and details.
+
+The initial full rebuild reads the repository's cached chunk-to-land map and
+does not load Bukkit chunks. Because BlueMap API 2.7.7 is thread-safe, bulk
+claims may update markers from MSLands' existing asynchronous claim task.
 
 ## Configuration
 
@@ -131,6 +135,7 @@ Unit tests cover:
 - mapping each supported land type to its configured style;
 - escaped marker details for player, guild, and system lands;
 - insertion/replacement for a claimed chunk and removal for wilderness;
+- removal of every affected marker after land deletion;
 - refreshing all markers after a land rename;
 - invalid configuration values falling back to defaults.
 
