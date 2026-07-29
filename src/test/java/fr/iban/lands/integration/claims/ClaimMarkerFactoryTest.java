@@ -61,6 +61,32 @@ class ClaimMarkerFactoryTest {
     }
 
     @Test
+    void excludesSublandsEvenWhenTheyHaveAConfiguredStyle() {
+        ClaimMarkerStyle style = new ClaimMarkerStyle(
+                new RgbColor(1, 2, 3),
+                new RgbColor(4, 5, 6),
+                0.25F
+        );
+        ClaimMarkerFactory configuredFactory = new ClaimMarkerFactory(
+                new BlueMapSettings(
+                        true,
+                        "Territoires",
+                        false,
+                        2,
+                        Map.of(
+                                LandType.PLAYER, style,
+                                LandType.GUILD, style,
+                                LandType.SYSTEM, style,
+                                LandType.SUBLAND, style
+                        )
+                ),
+                land -> "ignored"
+        );
+
+        assertTrue(configuredFactory.create(chunk, new SubLand(UUID.randomUUID(), "Mine")).isEmpty());
+    }
+
+    @Test
     void createsEscapedPlayerDetail() {
         PlayerLand land = new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "Maison <nord>");
 

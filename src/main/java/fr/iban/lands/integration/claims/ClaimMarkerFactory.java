@@ -18,6 +18,10 @@ public final class ClaimMarkerFactory {
     }
 
     public Optional<ClaimMarkerDescriptor> create(SChunk chunk, Land land) {
+        if (land.getType() == LandType.SUBLAND) {
+            return Optional.empty();
+        }
+
         ClaimMarkerStyle style = settings.style(land.getType());
         if (style == null) {
             return Optional.empty();
