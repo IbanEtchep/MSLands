@@ -35,6 +35,7 @@ import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 
 public final class LandsPlugin extends JavaPlugin {
 
@@ -112,9 +113,7 @@ public final class LandsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        claimVisualization.close();
-        singleThreadExecutor.shutdown();
-        seeClaims.values().forEach(SeeClaims::stop);
+        shutdownComponents(claimVisualization, singleThreadExecutor, seeClaims.values());
     }
 
     private void setupClaimVisualization() {
@@ -123,13 +122,48 @@ public final class LandsPlugin extends JavaPlugin {
             return;
         }
 
-        claimVisualization = BlueMapClaimVisualization.create(this);
-        queueInitialClaimVisualizationRebuild();
+        ClaimVisualization candidate = null;
+        try {
+            candidate = BlueMapClaimVisualization.create(this);
+            claimVisualization = candidate;
+            queueInitialClaimVisualizationRebuild();
+        } catch (RuntimeException | LinkageError failure) {
+            if (candidate != null) {
+                try {
+                    candidate.close();
+                } catch (RuntimeException | LinkageError cleanupFailure) {
+                    if (cleanupFailure != failure) {
+                        failure.addSuppressed(cleanupFailure);
+                    }
+                }
+            }
+            claimVisualization = ClaimVisualization.noop();
+            getLogger().log(
+                    Level.SEVERE,
+                    "BlueMap integration initialization failed; claim visualization is disabled until restart.",
+                    failure
+            );
+            return;
+        }
         getLogger().info("Intégration BlueMap effectuée.");
     }
 
     void queueInitialClaimVisualizationRebuild() {
         runAsyncQueued(claimVisualization::rebuild);
+    }
+
+    void shutdownComponents(
+            ClaimVisualization visualization,
+            ExecutorService executor,
+            Collection<SeeClaims> displays
+    ) {
+        try {
+            visualization.close();
+        } catch (RuntimeException | LinkageError failure) {
+            getLogger().log(Level.SEVERE, "BlueMap integration shutdown failed.", failure);
+        }
+        executor.shutdown();
+        displays.forEach(display -> display.stop());
     }
 
     private void registerCommands() {
