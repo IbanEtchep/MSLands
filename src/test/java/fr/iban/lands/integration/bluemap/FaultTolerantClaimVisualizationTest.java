@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -94,33 +92,49 @@ class FaultTolerantClaimVisualizationTest {
         RecordingVisualization delegate = new RecordingVisualization();
         CountDownLatch firstActionStarted = new CountDownLatch(1);
         CountDownLatch allowFirstFailure = new CountDownLatch(1);
+        CountDownLatch secondAttemptStarted = new CountDownLatch(1);
         CountDownLatch secondActionStarted = new CountDownLatch(1);
+        CountDownLatch allowSecondActionToComplete = new CountDownLatch(1);
         delegate.syncChunkAction = () -> {
             firstActionStarted.countDown();
             await(allowFirstFailure);
         };
         delegate.syncChunkRuntimeFailure = new IllegalStateException("BlueMap unavailable");
-        delegate.syncLandAction = secondActionStarted::countDown;
+        delegate.syncLandAction = () -> {
+            secondActionStarted.countDown();
+            await(allowSecondActionToComplete);
+        };
         BlueMapFailureCircuitBreaker breaker =
                 new BlueMapFailureCircuitBreaker(loggerWith(new RecordingHandler()));
         FaultTolerantClaimVisualization visualization =
                 new FaultTolerantClaimVisualization(delegate, breaker);
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Thread first = new Thread(() -> visualization.syncChunk(null));
+        Thread second = new Thread(() -> {
+            secondAttemptStarted.countDown();
+            visualization.syncLand(null);
+        });
 
         try {
-            var first = executor.submit(() -> visualization.syncChunk(null));
+            first.start();
             assertTrue(firstActionStarted.await(1, TimeUnit.SECONDS));
-            var second = executor.submit(() -> visualization.syncLand(null));
+            second.start();
+            assertTrue(secondAttemptStarted.await(1, TimeUnit.SECONDS));
 
-            assertFalse(secondActionStarted.await(200, TimeUnit.MILLISECONDS));
+            awaitAdmissionOutcome(second, secondActionStarted);
+            assertEquals(Thread.State.BLOCKED, second.getState());
 
             allowFirstFailure.countDown();
-            first.get(1, TimeUnit.SECONDS);
-            second.get(1, TimeUnit.SECONDS);
+            first.join(1_000);
+            second.join(1_000);
+            assertFalse(first.isAlive());
+            assertFalse(second.isAlive());
             assertTrue(breaker.isOpen());
             assertEquals(0, delegate.syncLandCalls);
         } finally {
-            executor.shutdownNow();
+            allowFirstFailure.countDown();
+            allowSecondActionToComplete.countDown();
+            first.join(1_000);
+            second.join(1_000);
         }
     }
 
@@ -155,6 +169,23 @@ class FaultTolerantClaimVisualizationTest {
             Thread.currentThread().interrupt();
             throw new AssertionError(exception);
         }
+    }
+
+    private static void awaitAdmissionOutcome(
+            Thread worker,
+            CountDownLatch delegateActionStarted
+    ) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+        while (worker.getState() != Thread.State.BLOCKED
+                && delegateActionStarted.getCount() != 0
+                && System.nanoTime() < deadline) {
+            Thread.onSpinWait();
+        }
+        assertTrue(
+                worker.getState() == Thread.State.BLOCKED
+                        || delegateActionStarted.getCount() == 0,
+                "worker did not reach circuit admission"
+        );
     }
 
     private static final class RecordingHandler extends Handler {
