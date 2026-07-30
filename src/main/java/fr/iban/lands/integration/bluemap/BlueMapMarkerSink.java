@@ -67,7 +67,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
                         firstFailure,
                         new IllegalStateException(
                                 "Failed to clear BlueMap marker set '" + MARKER_SET_ID
-                                        + "' from map '" + map.getId() + "'.",
+                                        + "' from map '" + mapId(map, exception) + "'.",
                                 exception
                         )
                 );
@@ -174,9 +174,21 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     ) {
         return new IllegalStateException(
                 "Failed to " + operation + " BlueMap marker '" + markerId
-                        + "' on map '" + map.getId() + "' for world '" + world + "'.",
+                        + "' on map '" + mapId(map, exception)
+                        + "' for world '" + world + "'.",
                 exception
         );
+    }
+
+    private String mapId(BlueMapMap map, RuntimeException primaryFailure) {
+        try {
+            return map.getId();
+        } catch (RuntimeException idFailure) {
+            if (idFailure != primaryFailure) {
+                primaryFailure.addSuppressed(idFailure);
+            }
+            return "<unavailable>";
+        }
     }
 
     private RuntimeException collectFailure(
