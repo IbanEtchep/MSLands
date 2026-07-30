@@ -26,6 +26,28 @@ import static org.mockito.Mockito.verify;
 
 class BlueMapClaimVisualizationTest {
     @Test
+    void synchronousEnableRegistrationAttachesWithoutRebuildingThenLaterEnableRebuilds() {
+        BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
+        ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
+        BlueMapAPI api = mock(BlueMapAPI.class);
+        RecordingListenerRegistry listeners = new RecordingListenerRegistry();
+        listeners.enableApiOnRegistration = api;
+
+        BlueMapClaimVisualization visualization = new BlueMapClaimVisualization(
+                sink, synchronizer, listeners, newBreaker()
+        );
+
+        verify(sink).attach(api);
+        verify(synchronizer, never()).rebuild();
+
+        listeners.onEnable.accept(api);
+
+        verify(sink, times(2)).attach(api);
+        verify(synchronizer).rebuild();
+        visualization.close();
+    }
+
+    @Test
     void containsEnableFailureAndSkipsLaterEnableCallbacks() {
         BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
         ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
@@ -202,10 +224,14 @@ class BlueMapClaimVisualizationTest {
         private final List<Consumer<BlueMapAPI>> unregistered = new ArrayList<>();
         private RuntimeException onDisableFailure;
         private RuntimeException unregisterFailure;
+        private BlueMapAPI enableApiOnRegistration;
 
         @Override
         public void onEnable(Consumer<BlueMapAPI> listener) {
             onEnable = listener;
+            if (enableApiOnRegistration != null) {
+                listener.accept(enableApiOnRegistration);
+            }
         }
 
         @Override

@@ -16,6 +16,7 @@ import org.bukkit.Bukkit;
 
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -69,12 +70,22 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
         this.synchronizer = Objects.requireNonNull(synchronizer);
         this.listeners = Objects.requireNonNull(listeners);
         this.breaker = Objects.requireNonNull(breaker);
-        this.onEnable = api -> breaker.execute("BlueMap enable", () -> {
-            sink.attach(api);
-            synchronizer.rebuild();
-        });
+        AtomicBoolean registeringEnableListener = new AtomicBoolean(true);
+        this.onEnable = api -> {
+            boolean rebuildAfterAttach = !registeringEnableListener.get();
+            breaker.execute("BlueMap enable", () -> {
+                sink.attach(api);
+                if (rebuildAfterAttach) {
+                    synchronizer.rebuild();
+                }
+            });
+        };
         this.onDisable = api -> breaker.cleanup("BlueMap disable", () -> sink.detach(api));
-        listeners.onEnable(onEnable);
+        try {
+            listeners.onEnable(onEnable);
+        } finally {
+            registeringEnableListener.set(false);
+        }
         try {
             listeners.onDisable(onDisable);
         } catch (RuntimeException | LinkageError failure) {

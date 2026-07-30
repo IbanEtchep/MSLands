@@ -9,7 +9,6 @@ import fr.iban.lands.integration.claims.ClaimMarkerSink;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class BlueMapMarkerSink implements ClaimMarkerSink {
@@ -59,18 +58,22 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     }
 
     private void clear(BlueMapAPI api) {
+        RuntimeException firstFailure = null;
         for (BlueMapMap map : api.getMaps()) {
             try {
                 map.getMarkerSets().remove(MARKER_SET_ID);
             } catch (RuntimeException exception) {
-                logger.log(
-                        Level.WARNING,
-                        "Failed to clear BlueMap marker set '" + MARKER_SET_ID
-                                + "' from map '" + map.getId() + "'.",
-                        exception
+                firstFailure = collectFailure(
+                        firstFailure,
+                        new IllegalStateException(
+                                "Failed to clear BlueMap marker set '" + MARKER_SET_ID
+                                        + "' from map '" + map.getId() + "'.",
+                                exception
+                        )
                 );
             }
         }
+        throwIfFailed(firstFailure);
     }
 
     @Override
@@ -86,13 +89,18 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
             return;
         }
 
+        RuntimeException firstFailure = null;
         for (BlueMapMap map : maps) {
             try {
                 markerSet(map).put(marker.id(), markerFactory.create(marker));
             } catch (RuntimeException exception) {
-                warnMutation("put", map, marker.world(), marker.id(), exception);
+                firstFailure = collectFailure(
+                        firstFailure,
+                        mutationFailure("put", map, marker.world(), marker.id(), exception)
+                );
             }
         }
+        throwIfFailed(firstFailure);
     }
 
     @Override
@@ -108,6 +116,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
             return;
         }
 
+        RuntimeException firstFailure = null;
         for (BlueMapMap map : maps) {
             try {
                 MarkerSet markerSet = map.getMarkerSets().get(MARKER_SET_ID);
@@ -115,9 +124,13 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
                     markerSet.remove(markerId);
                 }
             } catch (RuntimeException exception) {
-                warnMutation("remove", map, world, markerId, exception);
+                firstFailure = collectFailure(
+                        firstFailure,
+                        mutationFailure("remove", map, world, markerId, exception)
+                );
             }
         }
+        throwIfFailed(firstFailure);
     }
 
     @Override
@@ -152,18 +165,34 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         );
     }
 
-    private void warnMutation(
+    private RuntimeException mutationFailure(
             String operation,
             BlueMapMap map,
             String world,
             String markerId,
             RuntimeException exception
     ) {
-        logger.log(
-                Level.WARNING,
+        return new IllegalStateException(
                 "Failed to " + operation + " BlueMap marker '" + markerId
                         + "' on map '" + map.getId() + "' for world '" + world + "'.",
                 exception
         );
+    }
+
+    private RuntimeException collectFailure(
+            RuntimeException firstFailure,
+            RuntimeException failure
+    ) {
+        if (firstFailure == null) {
+            return failure;
+        }
+        firstFailure.addSuppressed(failure);
+        return firstFailure;
+    }
+
+    private void throwIfFailed(RuntimeException failure) {
+        if (failure != null) {
+            throw failure;
+        }
     }
 }

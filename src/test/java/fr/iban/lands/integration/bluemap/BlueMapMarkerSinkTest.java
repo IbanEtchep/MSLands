@@ -156,25 +156,94 @@ class BlueMapMarkerSinkTest {
     }
 
     @Test
-    void failingMapDoesNotPreventUpdatingOtherResolvedMaps() {
-        BlueMapMap failing = mock(BlueMapMap.class);
-        when(failing.getId()).thenReturn("broken");
-        when(failing.getMarkerSets()).thenThrow(new IllegalStateException("unavailable"));
+    void putAttemptsEveryResolvedMapThenThrowsFirstContextualFailure() {
+        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
+        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
+        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
         Map<String, MarkerSet> healthySets = new HashMap<>();
         BlueMapMap healthy = map("surface", healthySets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(failing, healthy));
+        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
+        when(resolver.resolve(api, "world"))
+                .thenReturn(List.of(firstFailing, healthy, laterFailing));
         BlueMapMarkerSink sink = sink(false);
         sink.attach(api);
 
-        sink.put(descriptor("chunk:2:-3"));
+        RuntimeException thrown = assertThrows(
+                RuntimeException.class,
+                () -> sink.put(descriptor("chunk:2:-3"))
+        );
 
         assertAll(
                 () -> assertNotNull(healthySets.get("mslands-claims").get("chunk:2:-3")),
-                () -> assertEquals(1, records.size()),
-                () -> assertTrue(records.getFirst().getMessage().contains("broken")),
-                () -> assertTrue(records.getFirst().getMessage().contains("world")),
-                () -> assertTrue(records.getFirst().getMessage().contains("chunk:2:-3")),
-                () -> assertEquals(IllegalStateException.class, records.getFirst().getThrown().getClass())
+                () -> assertTrue(thrown.getMessage().contains("put")),
+                () -> assertTrue(thrown.getMessage().contains("broken-first")),
+                () -> assertTrue(thrown.getMessage().contains("world")),
+                () -> assertTrue(thrown.getMessage().contains("chunk:2:-3")),
+                () -> assertSame(firstFailure, thrown.getCause()),
+                () -> assertEquals(1, thrown.getSuppressed().length),
+                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
+                () -> assertTrue(records.isEmpty())
+        );
+    }
+
+    @Test
+    void removeAttemptsEveryResolvedMapThenThrowsFirstContextualFailure() {
+        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
+        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
+        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
+        Map<String, MarkerSet> healthySets = new HashMap<>();
+        MarkerSet healthyMarkerSet = MarkerSet.builder().label("Territoires").build();
+        healthyMarkerSet.put("chunk:2:-3", mock(de.bluecolored.bluemap.api.markers.Marker.class));
+        healthySets.put("mslands-claims", healthyMarkerSet);
+        BlueMapMap healthy = map("surface", healthySets);
+        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
+        when(resolver.resolve(api, "world"))
+                .thenReturn(List.of(firstFailing, healthy, laterFailing));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        RuntimeException thrown = assertThrows(
+                RuntimeException.class,
+                () -> sink.remove("world", "chunk:2:-3")
+        );
+
+        assertAll(
+                () -> assertFalse(healthyMarkerSet.getMarkers().containsKey("chunk:2:-3")),
+                () -> assertTrue(thrown.getMessage().contains("remove")),
+                () -> assertTrue(thrown.getMessage().contains("broken-first")),
+                () -> assertTrue(thrown.getMessage().contains("world")),
+                () -> assertTrue(thrown.getMessage().contains("chunk:2:-3")),
+                () -> assertSame(firstFailure, thrown.getCause()),
+                () -> assertEquals(1, thrown.getSuppressed().length),
+                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
+                () -> assertTrue(records.isEmpty())
+        );
+    }
+
+    @Test
+    void clearAttemptsEveryActiveMapThenThrowsFirstContextualFailure() {
+        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
+        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
+        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
+        Map<String, MarkerSet> healthySets = new HashMap<>();
+        healthySets.put("mslands-claims", MarkerSet.builder().label("Territoires").build());
+        BlueMapMap healthy = map("surface", healthySets);
+        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
+        when(api.getMaps()).thenReturn(List.of(firstFailing, healthy, laterFailing));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, sink::clear);
+
+        assertAll(
+                () -> assertFalse(healthySets.containsKey("mslands-claims")),
+                () -> assertTrue(thrown.getMessage().contains("clear")),
+                () -> assertTrue(thrown.getMessage().contains("broken-first")),
+                () -> assertTrue(thrown.getMessage().contains("mslands-claims")),
+                () -> assertSame(firstFailure, thrown.getCause()),
+                () -> assertEquals(1, thrown.getSuppressed().length),
+                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
+                () -> assertTrue(records.isEmpty())
         );
     }
 
@@ -321,6 +390,13 @@ class BlueMapMarkerSinkTest {
         BlueMapMap map = mock(BlueMapMap.class);
         when(map.getId()).thenReturn(id);
         when(map.getMarkerSets()).thenReturn(markerSets);
+        return map;
+    }
+
+    private BlueMapMap failingMap(String id, RuntimeException failure) {
+        BlueMapMap map = mock(BlueMapMap.class);
+        when(map.getId()).thenReturn(id);
+        when(map.getMarkerSets()).thenThrow(failure);
         return map;
     }
 

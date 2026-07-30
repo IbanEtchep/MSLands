@@ -1,12 +1,20 @@
 package fr.iban.lands.integration.bluemap;
 
+import de.bluecolored.bluemap.api.BlueMapAPI;
+import de.bluecolored.bluemap.api.BlueMapMap;
+import fr.iban.lands.enums.LandType;
+import fr.iban.lands.integration.claims.BlueMapSettings;
+import fr.iban.lands.integration.claims.ClaimMarkerDescriptor;
+import fr.iban.lands.integration.claims.ClaimMarkerStyle;
 import fr.iban.lands.integration.claims.ClaimVisualization;
+import fr.iban.lands.integration.claims.RgbColor;
 import fr.iban.lands.model.SChunk;
 import fr.iban.lands.model.land.Land;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
@@ -19,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class FaultTolerantClaimVisualizationTest {
 
@@ -153,6 +163,79 @@ class FaultTolerantClaimVisualizationTest {
         assertTrue(breaker.isOpen());
         assertEquals(1, delegate.rebuildCalls);
         assertEquals(0, delegate.syncLandCalls);
+    }
+
+    @Test
+    void sinkFailureOpensSharedBreakerLogsOnceAndSkipsLaterVisualizationCall() {
+        RecordingHandler handler = new RecordingHandler();
+        Logger logger = loggerWith(handler);
+        BlueMapAPI api = mock(BlueMapAPI.class);
+        BlueMapMap failingMap = mock(BlueMapMap.class);
+        IllegalStateException sinkFailure = new IllegalStateException("map unavailable");
+        when(failingMap.getId()).thenReturn("broken");
+        when(failingMap.getMarkerSets()).thenThrow(sinkFailure);
+        BlueMapMapResolver resolver = mock(BlueMapMapResolver.class);
+        when(resolver.resolve(api, "world")).thenReturn(List.of(failingMap));
+        BlueMapMarkerSink sink = markerSink(logger, resolver);
+        sink.attach(api);
+        RecordingVisualization delegate = new RecordingVisualization();
+        delegate.syncChunkAction = () -> sink.put(descriptor());
+        BlueMapFailureCircuitBreaker breaker = new BlueMapFailureCircuitBreaker(logger);
+        FaultTolerantClaimVisualization visualization =
+                new FaultTolerantClaimVisualization(delegate, breaker);
+
+        visualization.syncChunk(null);
+        visualization.syncLand(null);
+
+        assertTrue(breaker.isOpen());
+        assertEquals(1, delegate.syncChunkCalls);
+        assertEquals(0, delegate.syncLandCalls);
+        assertEquals(1, handler.records.size());
+        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("broken"));
+        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("world"));
+        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("chunk:2:-3"));
+    }
+
+    private static BlueMapMarkerSink markerSink(
+            Logger logger,
+            BlueMapMapResolver resolver
+    ) {
+        ClaimMarkerStyle style = new ClaimMarkerStyle(
+                new RgbColor(52, 152, 219),
+                new RgbColor(52, 152, 219),
+                0.25F
+        );
+        BlueMapSettings settings = new BlueMapSettings(
+                true,
+                "Territoires",
+                false,
+                2,
+                Map.of(LandType.PLAYER, style)
+        );
+        return new BlueMapMarkerSink(
+                settings,
+                new BlueMapShapeMarkerFactory(settings.lineWidth()),
+                resolver,
+                logger
+        );
+    }
+
+    private static ClaimMarkerDescriptor descriptor() {
+        return new ClaimMarkerDescriptor(
+                "chunk:2:-3",
+                "world",
+                32,
+                -48,
+                48,
+                -32,
+                "Maison",
+                "<b>Maison</b>",
+                new ClaimMarkerStyle(
+                        new RgbColor(52, 152, 219),
+                        new RgbColor(46, 204, 113),
+                        0.35F
+                )
+        );
     }
 
     private static Logger loggerWith(Handler handler) {
