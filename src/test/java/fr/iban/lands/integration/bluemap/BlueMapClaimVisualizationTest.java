@@ -108,6 +108,24 @@ class BlueMapClaimVisualizationTest {
     }
 
     @Test
+    void rethrowsRegistrationFailureWhenRollbackThrowsTheSameInstance() {
+        BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
+        ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
+        RecordingListenerRegistry listeners = new RecordingListenerRegistry();
+        RuntimeException failure = new IllegalStateException("registration failed");
+        listeners.onDisableFailure = failure;
+        listeners.unregisterFailure = failure;
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> new BlueMapClaimVisualization(
+                        sink, synchronizer, listeners, newBreaker()
+                ));
+
+        assertSame(failure, thrown);
+        assertEquals(0, thrown.getSuppressed().length);
+    }
+
+    @Test
     void continuesCloseCleanupAfterEnableUnregisterFailure() {
         BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
         ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);

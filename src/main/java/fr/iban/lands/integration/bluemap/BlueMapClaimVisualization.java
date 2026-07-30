@@ -81,7 +81,9 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
             try {
                 listeners.unregister(onEnable);
             } catch (RuntimeException | LinkageError rollbackFailure) {
-                failure.addSuppressed(rollbackFailure);
+                if (rollbackFailure != failure) {
+                    failure.addSuppressed(rollbackFailure);
+                }
             }
             throw failure;
         }
