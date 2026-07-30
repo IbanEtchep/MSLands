@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -71,8 +75,9 @@ class FaultTolerantClaimVisualizationTest {
         RecordingVisualization delegate = new RecordingVisualization();
         delegate.syncChunkRuntimeFailure = new IllegalStateException("BlueMap unavailable");
         delegate.closeFailure = new IllegalStateException("BlueMap cleanup unavailable");
+        RecordingHandler handler = new RecordingHandler();
         BlueMapFailureCircuitBreaker breaker =
-                new BlueMapFailureCircuitBreaker(loggerWith(new RecordingHandler()));
+                new BlueMapFailureCircuitBreaker(loggerWith(handler));
         FaultTolerantClaimVisualization visualization =
                 new FaultTolerantClaimVisualization(delegate, breaker);
 
@@ -80,6 +85,60 @@ class FaultTolerantClaimVisualizationTest {
 
         assertDoesNotThrow(visualization::close);
         assertEquals(1, delegate.closeCalls);
+        assertEquals(1, handler.records.size());
+    }
+
+    @Test
+    void preventsQueuedSynchronizationFromStartingAfterAnotherThreadOpensCircuit()
+            throws Exception {
+        RecordingVisualization delegate = new RecordingVisualization();
+        CountDownLatch firstActionStarted = new CountDownLatch(1);
+        CountDownLatch allowFirstFailure = new CountDownLatch(1);
+        CountDownLatch secondActionStarted = new CountDownLatch(1);
+        delegate.syncChunkAction = () -> {
+            firstActionStarted.countDown();
+            await(allowFirstFailure);
+        };
+        delegate.syncChunkRuntimeFailure = new IllegalStateException("BlueMap unavailable");
+        delegate.syncLandAction = secondActionStarted::countDown;
+        BlueMapFailureCircuitBreaker breaker =
+                new BlueMapFailureCircuitBreaker(loggerWith(new RecordingHandler()));
+        FaultTolerantClaimVisualization visualization =
+                new FaultTolerantClaimVisualization(delegate, breaker);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            var first = executor.submit(() -> visualization.syncChunk(null));
+            assertTrue(firstActionStarted.await(1, TimeUnit.SECONDS));
+            var second = executor.submit(() -> visualization.syncLand(null));
+
+            assertFalse(secondActionStarted.await(200, TimeUnit.MILLISECONDS));
+
+            allowFirstFailure.countDown();
+            first.get(1, TimeUnit.SECONDS);
+            second.get(1, TimeUnit.SECONDS);
+            assertTrue(breaker.isOpen());
+            assertEquals(0, delegate.syncLandCalls);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void routesRebuildAndSyncLandThroughTheCircuitBreaker() {
+        RecordingVisualization delegate = new RecordingVisualization();
+        delegate.rebuildFailure = new IllegalStateException("BlueMap unavailable");
+        BlueMapFailureCircuitBreaker breaker =
+                new BlueMapFailureCircuitBreaker(loggerWith(new RecordingHandler()));
+        FaultTolerantClaimVisualization visualization =
+                new FaultTolerantClaimVisualization(delegate, breaker);
+
+        visualization.rebuild();
+        visualization.syncLand(null);
+
+        assertTrue(breaker.isOpen());
+        assertEquals(1, delegate.rebuildCalls);
+        assertEquals(0, delegate.syncLandCalls);
     }
 
     private static Logger loggerWith(Handler handler) {
@@ -87,6 +146,15 @@ class FaultTolerantClaimVisualizationTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
         return logger;
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(exception);
+        }
     }
 
     private static final class RecordingHandler extends Handler {
@@ -109,19 +177,31 @@ class FaultTolerantClaimVisualizationTest {
 
     private static final class RecordingVisualization implements ClaimVisualization {
 
+        private int rebuildCalls;
         private int syncChunkCalls;
+        private int syncLandCalls;
         private int closeCalls;
         private Error syncChunkFailure;
+        private RuntimeException rebuildFailure;
         private RuntimeException syncChunkRuntimeFailure;
+        private Runnable syncChunkAction;
+        private Runnable syncLandAction;
         private RuntimeException closeFailure;
 
         @Override
         public void rebuild() {
+            rebuildCalls++;
+            if (rebuildFailure != null) {
+                throw rebuildFailure;
+            }
         }
 
         @Override
         public void syncChunk(SChunk chunk) {
             syncChunkCalls++;
+            if (syncChunkAction != null) {
+                syncChunkAction.run();
+            }
             if (syncChunkFailure != null) {
                 throw syncChunkFailure;
             }
@@ -132,6 +212,10 @@ class FaultTolerantClaimVisualizationTest {
 
         @Override
         public void syncLand(Land land) {
+            syncLandCalls++;
+            if (syncLandAction != null) {
+                syncLandAction.run();
+            }
         }
 
         @Override

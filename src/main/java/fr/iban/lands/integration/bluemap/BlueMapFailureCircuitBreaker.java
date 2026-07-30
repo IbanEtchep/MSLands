@@ -14,13 +14,13 @@ public final class BlueMapFailureCircuitBreaker {
         this.logger = Objects.requireNonNull(logger);
     }
 
-    public void execute(String operation, Runnable action) {
+    public synchronized void execute(String operation, Runnable action) {
         if (!open.get()) {
             run(operation, action);
         }
     }
 
-    public void cleanup(String operation, Runnable action) {
+    public synchronized void cleanup(String operation, Runnable action) {
         run(operation, action);
     }
 
