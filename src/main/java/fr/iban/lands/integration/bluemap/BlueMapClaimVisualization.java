@@ -17,9 +17,9 @@ import org.bukkit.Bukkit;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public final class BlueMapClaimVisualization implements ClaimVisualization {
-
     private static final ListenerRegistry BLUE_MAP_LISTENERS = new ListenerRegistry() {
         @Override
         public void onEnable(Consumer<BlueMapAPI> listener) {
@@ -40,6 +40,7 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
     private final BlueMapMarkerSink sink;
     private final ClaimMarkerSynchronizer synchronizer;
     private final ListenerRegistry listeners;
+    private final BlueMapFailureCircuitBreaker breaker;
     private final Consumer<BlueMapAPI> onEnable;
     private final Consumer<BlueMapAPI> onDisable;
 
@@ -47,7 +48,7 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
             BlueMapMarkerSink sink,
             ClaimMarkerSynchronizer synchronizer
     ) {
-        this(sink, synchronizer, BLUE_MAP_LISTENERS);
+        this(sink, synchronizer, BLUE_MAP_LISTENERS, defaultBreaker());
     }
 
     BlueMapClaimVisualization(
@@ -55,19 +56,38 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
             ClaimMarkerSynchronizer synchronizer,
             ListenerRegistry listeners
     ) {
+        this(sink, synchronizer, listeners, defaultBreaker());
+    }
+
+    BlueMapClaimVisualization(
+            BlueMapMarkerSink sink,
+            ClaimMarkerSynchronizer synchronizer,
+            ListenerRegistry listeners,
+            BlueMapFailureCircuitBreaker breaker
+    ) {
         this.sink = Objects.requireNonNull(sink);
         this.synchronizer = Objects.requireNonNull(synchronizer);
         this.listeners = Objects.requireNonNull(listeners);
-        this.onEnable = api -> {
+        this.breaker = Objects.requireNonNull(breaker);
+        this.onEnable = api -> breaker.execute("BlueMap enable", () -> {
             sink.attach(api);
             synchronizer.rebuild();
-        };
-        this.onDisable = sink::detach;
+        });
+        this.onDisable = api -> breaker.cleanup("BlueMap disable", () -> sink.detach(api));
         listeners.onEnable(onEnable);
-        listeners.onDisable(onDisable);
+        try {
+            listeners.onDisable(onDisable);
+        } catch (RuntimeException | LinkageError failure) {
+            try {
+                listeners.unregister(onEnable);
+            } catch (RuntimeException | LinkageError rollbackFailure) {
+                failure.addSuppressed(rollbackFailure);
+            }
+            throw failure;
+        }
     }
 
-    public static BlueMapClaimVisualization create(LandsPlugin plugin) {
+    public static ClaimVisualization create(LandsPlugin plugin) {
         BlueMapSettings settings = BlueMapSettings.load(
                 plugin.getConfig()::get,
                 plugin.getLogger()::warning
@@ -90,7 +110,15 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
                 sink,
                 descriptorFactory
         );
-        return new BlueMapClaimVisualization(sink, synchronizer);
+        BlueMapFailureCircuitBreaker breaker =
+                new BlueMapFailureCircuitBreaker(plugin.getLogger());
+        BlueMapClaimVisualization lifecycleOwner = new BlueMapClaimVisualization(
+                sink,
+                synchronizer,
+                BLUE_MAP_LISTENERS,
+                breaker
+        );
+        return new FaultTolerantClaimVisualization(lifecycleOwner, breaker);
     }
 
     @Override
@@ -110,9 +138,15 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
 
     @Override
     public void close() {
-        listeners.unregister(onEnable);
-        listeners.unregister(onDisable);
-        synchronizer.close();
+        breaker.cleanup("BlueMap enable listener unregister", () -> listeners.unregister(onEnable));
+        breaker.cleanup("BlueMap disable listener unregister", () -> listeners.unregister(onDisable));
+        breaker.cleanup("BlueMap synchronizer close", synchronizer::close);
+    }
+
+    private static BlueMapFailureCircuitBreaker defaultBreaker() {
+        return new BlueMapFailureCircuitBreaker(
+                Logger.getLogger(BlueMapClaimVisualization.class.getName())
+        );
     }
 
     private static String ownerLabel(LandsPlugin plugin, Land land) {
@@ -120,7 +154,6 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
         if (owner == null) {
             return "";
         }
-
         if (land instanceof GuildLand guildLand) {
             if (plugin.isGuildsHookEnabled()) {
                 String guildName = guildLand.getGuildName();
@@ -130,13 +163,11 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
             }
             return owner.toString();
         }
-
         String playerName = Bukkit.getOfflinePlayer(owner).getName();
         return playerName == null ? owner.toString() : playerName;
     }
 
     interface ListenerRegistry {
-
         void onEnable(Consumer<BlueMapAPI> listener);
 
         void onDisable(Consumer<BlueMapAPI> listener);
