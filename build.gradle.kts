@@ -25,7 +25,8 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.github.IbanEtchep.MSCore:core-paper:1.1.1")
-    compileOnly("com.github.IbanEtchep:MSGuilds:1.1.0")
+    // ArtisanGuilds (formerly MSGuilds): ./gradlew :artisan-guilds-plugin:publishToMavenLocal in its repository.
+    compileOnly("com.github.ibanetchep:artisan-guilds-plugin:2.0.0-SNAPSHOT")
     compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
     compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")

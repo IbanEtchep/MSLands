@@ -145,7 +145,7 @@ public final class LandsPlugin extends JavaPlugin {
             return;
         }
 
-        Plugin guildsPlugin = getServer().getPluginManager().getPlugin("MSGuilds");
+        Plugin guildsPlugin = getServer().getPluginManager().getPlugin("ArtisanGuilds");
 
         if (guildsPlugin == null || !guildsPlugin.isEnabled()) {
             return;
