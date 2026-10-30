@@ -8,6 +8,7 @@ import fr.iban.lands.api.LandService;
 import fr.iban.lands.commands.*;
 import fr.iban.lands.commands.parametertypes.LandParameterType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
+import fr.iban.lands.guild.ArtisanGuildsDataAccess;
 import fr.iban.lands.guild.GuildsDataAccess;
 import fr.iban.lands.listeners.*;
 import fr.iban.lands.model.land.Land;
@@ -155,12 +156,25 @@ public final class LandsPlugin extends JavaPlugin {
         }
     }
 
+    /**
+     * ArtisanGuilds first, MSGuilds otherwise: a server keeps its guild lands while it moves from
+     * one to the other. ArtisanGuilds' API may arrive after this plugin is enabled, so its hook is
+     * kept even before it is enabled.
+     */
     private void hookGuilds() {
         if (!getConfig().getBoolean("guild-lands-enabled", false)) {
             return;
         }
 
-        Plugin guildsPlugin = getServer().getPluginManager().getPlugin("MSGuilds");
+        PluginManager pluginManager = getServer().getPluginManager();
+        if (pluginManager.isPluginEnabled("ArtisanGuilds")) {
+            ArtisanGuildsDataAccess artisanGuilds = new ArtisanGuildsDataAccess(this);
+            artisanGuilds.load();
+            this.guildDataAccess = artisanGuilds;
+            return;
+        }
+
+        Plugin guildsPlugin = pluginManager.getPlugin("MSGuilds");
 
         if (guildsPlugin == null || !guildsPlugin.isEnabled()) {
             return;
