@@ -82,7 +82,6 @@ public final class LandsPlugin extends JavaPlugin {
                 new ExplodeListeners(this),
                 new FireListener(this),
                 new HangingListeners(this),
-                new HeadDatabaseListener(),
                 new InteractListener(this),
                 new JoinQuitListeners(this),
                 new LandListeners(this),
@@ -100,7 +99,7 @@ public final class LandsPlugin extends JavaPlugin {
             getLogger().info("Intégration QuickShop effectuée.");
         }
 
-        Head.loadAPI();
+        hookHeadDatabase();
 
         PotionEffectTask potionEffectTask = new PotionEffectTask(this);
         getScheduler().runTimer(potionEffectTask, 100, 100);
@@ -138,6 +137,22 @@ public final class LandsPlugin extends JavaPlugin {
 
     public Economy getEconomy() {
         return econ;
+    }
+
+    /**
+     * Optional: without HeadDatabase, or with a version that lacks its API, menus show plain player
+     * heads instead of failing the whole plugin.
+     */
+    private void hookHeadDatabase() {
+        if (!getServer().getPluginManager().isPluginEnabled("HeadDatabase")) {
+            return;
+        }
+        try {
+            registerListeners(new HeadDatabaseListener());
+            Head.loadAPI();
+        } catch (LinkageError e) {
+            getLogger().warning("HeadDatabase is installed but its API is missing (" + e + "): plain heads are used.");
+        }
     }
 
     private void hookGuilds() {
