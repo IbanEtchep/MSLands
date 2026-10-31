@@ -8,6 +8,7 @@ import fr.iban.lands.api.LandService;
 import fr.iban.lands.commands.*;
 import fr.iban.lands.commands.parametertypes.LandParameterType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
+import fr.iban.lands.guild.ArtisanGuildsDataAccess;
 import fr.iban.lands.guild.GuildsDataAccess;
 import fr.iban.lands.listeners.*;
 import fr.iban.lands.model.land.Land;
@@ -82,7 +83,6 @@ public final class LandsPlugin extends JavaPlugin {
                 new ExplodeListeners(this),
                 new FireListener(this),
                 new HangingListeners(this),
-                new HeadDatabaseListener(),
                 new InteractListener(this),
                 new JoinQuitListeners(this),
                 new LandListeners(this),
@@ -100,7 +100,7 @@ public final class LandsPlugin extends JavaPlugin {
             getLogger().info("Intégration QuickShop effectuée.");
         }
 
-        Head.loadAPI();
+        hookHeadDatabase();
 
         PotionEffectTask potionEffectTask = new PotionEffectTask(this);
         getScheduler().runTimer(potionEffectTask, 100, 100);
@@ -140,12 +140,41 @@ public final class LandsPlugin extends JavaPlugin {
         return econ;
     }
 
+    /**
+     * Optional: without HeadDatabase, or with a version that lacks its API, menus show plain player
+     * heads instead of failing the whole plugin.
+     */
+    private void hookHeadDatabase() {
+        if (!getServer().getPluginManager().isPluginEnabled("HeadDatabase")) {
+            return;
+        }
+        try {
+            registerListeners(new HeadDatabaseListener());
+            Head.loadAPI();
+        } catch (LinkageError e) {
+            getLogger().warning("HeadDatabase is installed but its API is missing (" + e + "): plain heads are used.");
+        }
+    }
+
+    /**
+     * ArtisanGuilds first, MSGuilds otherwise: a server keeps its guild lands while it moves from
+     * one to the other. ArtisanGuilds' API may arrive after this plugin is enabled, so its hook is
+     * kept even before it is enabled.
+     */
     private void hookGuilds() {
         if (!getConfig().getBoolean("guild-lands-enabled", false)) {
             return;
         }
 
-        Plugin guildsPlugin = getServer().getPluginManager().getPlugin("MSGuilds");
+        PluginManager pluginManager = getServer().getPluginManager();
+        if (pluginManager.isPluginEnabled("ArtisanGuilds")) {
+            ArtisanGuildsDataAccess artisanGuilds = new ArtisanGuildsDataAccess(this);
+            artisanGuilds.load();
+            this.guildDataAccess = artisanGuilds;
+            return;
+        }
+
+        Plugin guildsPlugin = pluginManager.getPlugin("MSGuilds");
 
         if (guildsPlugin == null || !guildsPlugin.isEnabled()) {
             return;

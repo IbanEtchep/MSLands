@@ -14,7 +14,6 @@ repositories {
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
     maven { url = uri("https://oss.sonatype.org/content/groups/public/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-public/") }
-    maven { url = uri("https://mvn.intellectualsites.com/content/repositories/thirdparty/") }
     maven { url = uri("https://repo.alessiodp.com/releases/") }
     maven { url = uri("https://jitpack.io/") }
     maven { url = uri("https://repo.maven.apache.org/maven2/") }
@@ -26,6 +25,9 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.github.IbanEtchep.MSCore:core-paper:1.1.1")
     compileOnly("com.github.IbanEtchep:MSGuilds:1.1.0")
+    // ArtisanGuilds is not published remotely yet:
+    //   cd <MSGuilds> && ./gradlew :artisan-guilds-plugin:publishToMavenLocal
+    compileOnly("com.github.ibanetchep:artisan-guilds-plugin:2.0.0-SNAPSHOT")
     compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
     compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
