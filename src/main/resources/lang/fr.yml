@@ -1,0 +1,287 @@
+# Messages d'ArtisanLands (MiniMessage). Les <nom> sont remplacés par leur valeur, en texte simple.
+# Le fichier de la langue d'un joueur est lu d'abord, puis celui de la langue par défaut (config.yml).
+disabled: "<red>Les territoires ne sont pas activés sur ce serveur."
+player_only: "<red>Vous devez être un joueur pour exécuter cette commande."
+no_permission_here: "<red>Vous n'avez pas la permission de faire cela dans ce claim."
+menu:
+  unavailable: "<red>Ce menu n'est pas disponible. Prévenez un administrateur."
+
+land:
+  wilderness: "Zone sauvage"
+  not_found: "<red>Le territoire <name> n'existe pas."
+  created: "<green>Le territoire au nom de <name> a été créé."
+  renamed: "<green>Le nom du territoire a bien été modifié."
+  deleted: "<red>Le territoire <name> a bien été supprimé."
+  none: "<red>Vous n'avez pas de territoire. Créez-en un avec /land create [nom]"
+  cannot_manage: "<red>Vous ne pouvez pas gérer ce territoire."
+  name:
+    too_long: "<red>Le nom du territoire ne doit pas dépasser 16 caractères."
+    spaces: "<red>Le nom du territoire ne doit pas contenir d'espaces."
+    empty: "<red>Donnez un nom au territoire."
+    taken: "<red>Vous avez déjà un territoire à ce nom."
+
+guild:
+  disabled: "<red>Les territoires de guilde ne sont pas activés sur ce serveur."
+  not_admin: "<red>Vous devez être administrateur d'une guilde pour accéder à ce menu."
+  owner: "Guilde - <guild>"
+
+claim:
+  done: "<green><bold>Le tronçon a bien été claim."
+  taken: "<red><bold>Ce tronçon est déjà claim."
+  none_left: "<red>Vous n'avez plus de claim disponible."
+  progress: "<green>Protection des chunks... (<done>/<total>) [<percent>%]"
+  selection_done: "<green><bold>La sélection a été protégée avec succès."
+unclaim:
+  done: "<green><bold>Le tronçon a bien été unclaim."
+  not_yours: "<red><bold>Ce tronçon ne vous appartient pas !"
+  forced: "<green>Le claim a été retiré."
+
+claims:
+  not_enough: "<red>Vous n'avez pas assez de claims."
+  given: "<green>Vous avez donné <amount> claims à <player>."
+  given_offline: "<green>Vous avez donné <amount> claims."
+  received: "<green>Vous avez reçu <amount> claims de <player>."
+
+limits:
+  increased: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> augmenté de <dark_gray><amount>"
+  decreased: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> diminué de <dark_gray><amount>"
+  show: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> : <dark_gray><amount>"
+
+ban:
+  self: "<red>Vous ne pouvez pas vous bannir vous-même !"
+  already: "<red>Ce joueur est déjà banni."
+  done: "<green>Le joueur a bien été banni."
+  notify: "<red>Vous avez été banni du territoire <land> par <player>."
+  unknown_player: "<red>Le joueur <player> n'a jamais joué sur le serveur."
+  enter_denied: "<red>Vous ne pouvez pas entrer dans ce territoire, le propriétaire vous a banni."
+unban:
+  not_banned: "<red>Ce joueur n'est pas banni."
+  done: "<green>Le joueur a bien été débanni."
+  notify: "<green>Vous avez été débanni du territoire <land> par <player>."
+
+trust:
+  unknown_player: "<red>Le joueur <player> n'a jamais joué sur le serveur."
+
+link:
+  self: "<red>Un territoire ne peut pas être lié à lui-même."
+
+kick:
+  done: "<green>Le joueur a bien été expulsé."
+  notify: "<red>Vous avez été expulsé du territoire de <player>."
+  denied: "<red>Vous n'avez pas la permission d'exclure ce joueur du territoire où il se trouve."
+  self: "<red>Impossible de faire cela sur vous-même..."
+
+bypass:
+  "on": "<dark_gray><bold>Bypass : <green>Activé"
+  "off": "<dark_gray><bold>Bypass : <red>Désactivé"
+seeclaims:
+  "on": "<green>Mode vision de claims activé."
+  "off": "<red>Mode vision de claims désactivé."
+
+create:
+  usage: "<gray>/land create [nom]"
+
+enter:
+  # Barre d'action en changeant de territoire. <from_owner> et <to_owner> : « ☗ propriétaire » ou rien.
+  bar: "<bold><#F57C00><from><#FFA726><from_owner> <dark_gray>➜ <#AFB42B><to><#D4E157><to_owner>"
+
+flag:
+  silent_mobs:
+    sublands: "<red>Flag non supporté sur les sous-territoires."
+    changing: "<green>Changement d'état des mobs..."
+    silent: "<green>Les mobs du territoire sont maintenant silencieux."
+    noisy: "<green>Les mobs du territoire sont maintenant bruyants."
+
+portal:
+  cancelled: "<red>La création du portail a été annulée, celui-ci se trouvant sur un claim où vous n'êtes pas autorisé à poser des blocs."
+
+map:
+  land: "<dark_green>Territoire : <land>"
+  owner_you: "<dark_green>Propriétaire : Vous"
+  land_other: "<#B95608>Territoire : <land>"
+  owner: "<#B95608>Propriétaire : <owner>"
+  guild_land: "<dark_green>Territoire de guilde : <land>"
+  guild_land_other: "<#B95608>Territoire de guilde : <land>"
+  guild_owner: "<#B95608>Propriétaire : Guilde <guild>"
+  click_claim: "<gray>(clic pour claim)"
+  click_unclaim: "<gray>(clic pour unclaim)"
+
+selection:
+  start: "<dark_green><bold>Début de la sélection de la zone."
+  quit: "<red>Vous avez quitté le mode sélection."
+  pos1: "<green><bold>Position 1 définie."
+  pos2: "<green><bold>Position 2 définie."
+  contains: "<green><bold>Votre sélection contient <count> tronçons."
+  verifying: "<green><bold>Vérification de la sélection..."
+  pos1_missing: "<red><bold>La position 1 n'a pas encore été définie !"
+  pos2_missing: "<red><bold>La position 2 n'a pas encore été définie !"
+  both_missing: "<red><bold>Il faut définir les deux positions !"
+  too_big: "<red><bold>La sélection est trop grande !"
+  foreign_chunks: "<red><bold>La sélection contient des tronçons qui ne sont pas vides et n'appartiennent pas au territoire <land>."
+  nothing_to_claim: "<red><bold>Il n'y a pas de tronçons à claim dans la sélection."
+  too_many: "<red><bold>Vous essayez de claim <count> tronçons alors qu'il ne vous en reste que <remaining> de libre."
+  nothing_to_unclaim: "<red><bold>Il n'y a pas de tronçons à unclaim dans la sélection."
+  unclaimed: "<green><bold>La sélection a été unclaim avec succès."
+  invalid: "<red><bold>Le texte que vous avez saisi est invalide."
+  # Les mots se cliquent (ou se tapent dans le chat).
+  help: "<yellow><bold>Les mots clés pour la création d'une sélection sont (survol et clic possibles) : <click:run_command:'/sayinchat pos1'><hover:show_text:'<green>Cliquez pour définir la position 1'><gold><bold>pos1</hover></click><yellow><bold>, <click:run_command:'/sayinchat pos2'><hover:show_text:'<green>Cliquez pour définir la position 2'><gold><bold>pos2</hover></click><yellow><bold>, <click:run_command:'/sayinchat claim'><hover:show_text:'<green>Cliquez pour claim la sélection'><green><bold>claim</hover></click><yellow><bold>, <click:run_command:'/sayinchat unclaim'><hover:show_text:'<green>Cliquez pour unclaim la sélection'><red><bold>unclaim</hover></click><yellow><bold> et <click:run_command:'/sayinchat quit'><hover:show_text:'<green>Cliquez pour quitter le mode sélection'><red><bold>quitter</hover></click><yellow><bold>."
+  help_admin: "<yellow><bold>Admin : <click:run_command:'/sayinchat forceunclaim'><hover:show_text:'<green>Unclaim TOUS les chunks de la sélection'><red><bold>forceunclaim</hover></click>"
+  cuboid:
+    warning: "<red><bold>Attention, le sous-territoire doit se trouver dans votre territoire pour fonctionner."
+    saved: "<green><bold>La sélection a été sauvegardée avec succès."
+    outside: "<red><bold>La sélection doit se trouver dans le territoire <land>."
+    help: "<yellow><bold>Les mots clés pour la création d'une sélection sont (survol et clic possibles) : <click:run_command:'/sayinchat pos1'><hover:show_text:'<green>Cliquez pour définir la position 1'><gold><bold>pos1</hover></click><yellow><bold>, <click:run_command:'/sayinchat pos2'><hover:show_text:'<green>Cliquez pour définir la position 2'><gold><bold>pos2</hover></click><yellow><bold>, <click:run_command:'/sayinchat sauvegarder'><hover:show_text:'<green>Cliquez pour sauvegarder la zone'><green><bold>sauvegarder</hover></click><yellow><bold> et <click:run_command:'/sayinchat quit'><hover:show_text:'<green>Cliquez pour quitter le mode sélection'><red><bold>quitter</hover></click><yellow><bold>."
+
+help:
+  text: |-
+    <#fbeba7>La protection de vos territoires se gère avec les commandes ci-dessous.
+
+    <#fbeba7>- <click:suggest_command:'/lands'><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/lands</hover></click> - Ouvre le menu de gestion de vos territoires.
+    <#fbeba7>- <click:suggest_command:'/land claim '><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/land claim [territoire]</hover></click> - Attribue le tronçon où vous vous trouvez au territoire choisi ou à votre premier territoire.
+    <#fbeba7>- <click:suggest_command:'/land unclaim'><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/land unclaim</hover></click> - Retire le tronçon où vous vous trouvez de vos territoires.
+    <#fbeba7>- <click:suggest_command:'/land map '><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/land map [territoire]</hover></click> - Affiche une carte des territoires alentour. Permet de claim/unclaim si un territoire est sélectionné.
+    <#fbeba7>- <click:suggest_command:'/land kick '><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/land kick [joueur]</hover></click> - Renvoie au spawn un joueur qui se trouve dans votre territoire.
+    <#fbeba7>- <click:suggest_command:'/land seeclaims'><hover:show_text:'<gray>Clic pour écrire la commande'><#B95608>/land seeclaims</hover></click> - Permet de voir les bordures des claims.
+
+    <#fbeba7>Les <#B95608>tronçons (chunks)</#B95608> mesurent <#B95608>16x256x16 blocs</#B95608> et sont visibles en appuyant sur les touches <#B95608>F3+G</#B95608>.
+
+admin:
+  setspawn: "<green>Position du spawn redéfinie."
+  debug:
+    "on": "<white>Mode debug : <green>Activé"
+    "off": "<white>Mode debug : <red>Désactivé"
+    detail: |-
+      <white><action> :
+       globalTrust: <global>
+       selfTrust: <self>
+       guildTrust: <guild>
+       bypass: <bypass>
+  chunkinfo:
+    header: "<gold><bold>Chunk X:<x> Z:<z>"
+    type: "<dark_gray>Type : <white><type>"
+    land: "<dark_gray>Territoire : <white><land>"
+    claimed_at: "<dark_gray>Claim le : <white><date>"
+    none: "<red>Ce chunk n'est pas claim."
+  default_world_land: "<red>Le claim par défaut du monde <world> est désormais <land>."
+  effect:
+    unknown: "<red>Cet effet n'existe pas."
+    added: "<green>Effet ajouté."
+    removed: "<green>Effet retiré."
+    list_header: "<gold>Effets actifs sur le territoire <land> :"
+    list_line: "<dark_gray>- <white><effect> <amplifier>"
+  command:
+    added: "<green>Commande ajoutée."
+    removed: "<green>Commande retirée."
+    invalid_id: "<red>L'ID du territoire ou de la commande est invalide."
+    not_found: "<red>Cette commande n'existe pas."
+    list_header: "<gold>Commandes d'entrée du territoire <land> :"
+    list_line: "<dark_gray>- <white><command> <dark_gray><console></dark_gray> <red><bold><click:run_command:'/land admin command remove <land_id> <command_id>'><hover:show_text:'<gray>Clique pour supprimer cette commande'>[Supprimer]</hover></click>"
+    console: "[Console]"
+
+guildclaims:
+  not_in_guild: "<red>Vous n'êtes pas dans une guilde."
+  no_permission: "<red>Vous n'avez pas la permission d'accéder à cette commande."
+  not_allowed: "<red>Vous n'êtes pas dans une guilde ou vous n'avez pas la permission de gérer les claims."
+  prices_missing: "<red>Erreur : la section des prix des claims n'est pas trouvée dans la configuration."
+  invalid_amount: "<red>Veuillez spécifier un nombre de claims valide à acheter."
+  info:
+    header: |-
+      <gold>--- Barème d'achat des claims de guilde ---
+      <gray>Nombre de claims | Coût d'achat
+      <gray>---------------------------------
+    range_between: "<min> à <max>"
+    range_from: "<min> et +"
+    line: "<green><range> <gray>-> <yellow><price>"
+    footer: |-
+      <yellow>---------------------------------
+      <gold>▶ Informations de votre guilde ◀
+      <aqua>Claims actuels : <white><count> <gray>/ <white><max>
+      <aqua>Claims restants : <green><remaining>
+      <yellow>---------------------------------
+      <gray>Pour acheter des claims, utilisez :
+      <green>/guildclaims buy [nombre]
+  dialog:
+    title: "<gold>Confirmer l'achat de claims"
+    amount: "<gray>Nombre de claims à acheter : <white><amount>"
+    cost: "<gray>Coût total : <yellow><cost> $"
+    current: "<gray>Claims actuels : <white><current>"
+    new: "<gray>Nouveaux claims : <green><new>"
+    question: "<aqua>Voulez-vous confirmer cet achat ?"
+    confirm: "<#AEFFC1>✓ Confirmer"
+    confirm_tooltip: "Acheter <amount> claims pour <cost> $"
+    cancel: "<#FFA0B1>✗ Annuler"
+    cancel_tooltip: "Annuler l'achat"
+  not_enough_money: "<red>Votre guilde n'a pas assez d'argent, il vous faut <cost> $."
+  bank_reason: "Achat de claims"
+  bought: |-
+    <green>Achat de claims réussi !
+    <green>Votre guilde a acheté <white><amount></white> claims maximum pour un coût total de <yellow><cost></yellow> $.
+    <green>Nouveau maximum de claims : <white><max>
+
+# Libellés des permissions d'un territoire (menus de permissions).
+permissions:
+  all: "Tout"
+  block_break: "Casser des blocs"
+  block_place: "Placer des blocs"
+  open_container: "Ouvrir les conteneurs (coffres, fours, entonnoirs...)"
+  bucket_empty: "Vider des seaux"
+  bucket_fill: "Remplir des seaux"
+  use: "Utiliser les portes, trappes, répéteurs..."
+  passive_kill: "Taper les entités passives"
+  tagged_kill: "Tuer les entités renommées"
+  set_warp: "Mettre un warp dans votre claim"
+  set_home: "Mettre une résidence (home) dans votre claim"
+  shop_create: "Créer un shop dans votre warp"
+  shop_open: "Ouvrir les shops dans votre warp"
+  use_bed: "Utiliser les lits"
+  use_respawn_anchor: "Utiliser les ancres de réapparition"
+  use_anvil: "Utiliser les enclumes"
+  entity_interact: "Interagir avec les entités (ex : villageois)"
+  lectern_take: "Prendre/poser des livres sur les pupitres"
+  lectern_read: "Lire les livres dans les pupitres"
+  brewing_stand_interact: "Utiliser les alambics"
+  physical_interact: "Interactions physiques (plaques de pression, crochets...)"
+  flower_pot_interact: "Interactions avec les pots de fleurs"
+  chiseled_bookshelf_interact: "Interactions avec les bibliothèques sculptées"
+  use_spawn_egg: "Utiliser les œufs d'apparition"
+  fertilize: "Fertiliser les terres"
+  dragon_egg_interact: "Interagir avec les œufs de dragon"
+  drop: "Jeter des items"
+  leash: "Attacher un animal avec une laisse"
+  armor_stand_interact: "Interagir avec un porte-armure"
+  frost_walk: "Générer de la glace avec l'enchantement Semelles givrantes"
+  chorus_teleport: "Se téléporter en mangeant des chorus"
+  ender_pearl_teleport: "Se téléporter avec des ender pearls"
+  cauldron_fill_empty: "Remplir/vider un chaudron"
+  vehicle_place_break: "Poser/casser des véhicules (bateaux, wagonnets)"
+  change_beacon_effect: "Changer l'effet des balises"
+  sign_edit: "Modifier les pancartes"
+  shelf_interact: "Interactions avec les étagères"
+
+permission_groups:
+  building: "Construction/destruction"
+  containers: "Conteneurs"
+  plugins: "Actions de plugins"
+  use: "Portes/redstone"
+  interact: "Interactions"
+  teleport: "Téléportation"
+
+# Libellés des paramètres (flags) d'un territoire.
+flags:
+  invincible: "Active l'invincibilité pour les joueurs"
+  pvp: "Active le PvP"
+  auto_replant: "Active l'auto-replantation"
+  doors_autoclose: "Active la fermeture automatique des portes"
+  no_mob_spawning: "Désactive l'apparition des mobs"
+  silent_enter_quit: "Désactive le message d'entrée/sortie du territoire"
+  invisible: "Rend les joueurs à l'intérieur invisibles"
+  instant_teleport: "Supprime le délai des téléportations depuis ce territoire"
+  explosions: "Active les explosions"
+  block_damages_by_entity: "Active les dégâts aux blocs par les entités (endermen, withers...)"
+  pressure_plate_by_entity: "Active l'utilisation des plaques de pression par les entités"
+  tripwire_by_entity: "Active l'utilisation des crochets par les entités"
+  farmland_grief: "Active la destruction des terres labourées"
+  fire: "Active les dégâts du feu et sa propagation"
+  silent_mobs: "Désactive le bruit des mobs de ce territoire"
+  liquid_spread: "Autorise les liquides extérieurs au claim à se propager"
+  shop_money_to_guild_bank: "Redirige l'argent des shops vers la banque de la guilde"

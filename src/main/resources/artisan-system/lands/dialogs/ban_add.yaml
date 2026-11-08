@@ -1,0 +1,26 @@
+schema: dialog/v1
+# Opened by lands:bans with land.
+title:
+  en: "Ban a player"
+  fr: "Bannir un joueur"
+inputs:
+  - id: name
+    type: text
+    label:
+      en: "Player name"
+      fr: "Nom du joueur"
+    max_length: 16
+buttons:
+  - id: ban
+    label:
+      en: "<red>Ban"
+      fr: "<red>Bannir"
+    actions:
+      - lands:ban: { land: "{land}", player: "{name}" }
+      - open_previous_menu
+  - id: cancel
+    label:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    actions:
+      - open_previous_menu

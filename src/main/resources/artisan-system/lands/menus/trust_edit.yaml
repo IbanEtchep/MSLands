@@ -1,0 +1,128 @@
+schema: menu/v1
+# Opened with land, target (global, guild or a player's UUID) and group (empty: the top level).
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Edit the permissions"
+      fr: "<dark_green><bold>Édition des permissions"
+size: 36
+inputs:
+  - name: land
+    type: string
+  - name: target
+    type: string
+  - name: group
+    type: string
+  - name: who
+    type: list
+    source: { ref: "lands:trust_target", params: { land: "{land}", target: "{target}" } }
+  # Without a group: ALL (alone once granted), the groups, then the actions of no group.
+  # Empty unless the viewer may manage the land.
+  - name: permissions
+    type: list
+    source: { ref: "lands:permissions", params: { land: "{land}", target: "{target}", group: "{group}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: who
+    positions: "4"
+    iterates: { source: who, alias: w }
+    material: PLAYER_HEAD
+    head: "playerhead:{w.name}"
+    title: "<dark_green><bold>{w.name}"
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{w.kind}", value: "global" }
+        material: PLAYER_HEAD
+        head: "hdb:2981"
+        title:
+          en: "<dark_green><bold>Global permissions"
+          fr: "<dark_green><bold>Permissions globales"
+      - if:
+          - placeholder_equals: { placeholder: "{w.kind}", value: "guild" }
+        material: PLAYER_HEAD
+        head: "hdb:51046"
+        title:
+          en: "<dark_green><bold>Guild permissions"
+          fr: "<dark_green><bold>Permissions de guilde"
+  - id: permissions
+    positions: "10-16,19-25"
+    iterates: { source: permissions, alias: p }
+    material: "{p.icon}"
+    title: "<dark_red>{p.name}"
+    lore:
+      en:
+        - "<aqua>[Click] <white>grant"
+      fr:
+        - "<aqua>[Clic] <white>accorder"
+    click:
+      left:
+        - lands:toggle_permission: { land: "{land}", target: "{target}", permission: "{p.key}" }
+        - set_arg: { arg: refresh, value: "{p.key}" }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{p.kind}", value: "group" }
+        material: "{p.icon}"
+        title: "<white><bold>{p.name}"
+        lore:
+          en:
+            - "<gray>Granted: <white>{p.granted_count}/{p.total}"
+            - "<aqua>[Click] <white>see the permissions"
+          fr:
+            - "<gray>Accordées : <white>{p.granted_count}/{p.total}"
+            - "<aqua>[Clic] <white>voir les permissions"
+        click:
+          left:
+            - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "{target}", group: "{p.key}" } }
+      - if:
+          - placeholder_equals: { placeholder: "{p.granted}", value: "true" }
+        material: "{p.icon}"
+        title: "<dark_green>{p.name}"
+        lore:
+          en:
+            - "<aqua>[Click] <white>revoke"
+          fr:
+            - "<aqua>[Clic] <white>retirer"
+        click:
+          left:
+            - lands:toggle_permission: { land: "{land}", target: "{target}", permission: "{p.key}" }
+            - set_arg: { arg: refresh, value: "{p.key}" }
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: permissions
+    states:
+      - if:
+          - pagination_at_first: permissions
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: permissions
+    states:
+      - if:
+          - pagination_at_last: permissions
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu

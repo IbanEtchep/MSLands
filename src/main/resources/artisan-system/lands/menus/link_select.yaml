@@ -1,0 +1,73 @@
+schema: menu/v1
+# Opened with land and type (trusts, globaltrust or bans): the lands it may borrow it from.
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Choose a land"
+      fr: "<dark_green><bold>Choisissez un territoire"
+size: 36
+inputs:
+  - name: land
+    type: string
+  - name: type
+    type: string
+  - name: candidates
+    type: list
+    source: { ref: "lands:link_candidates", params: { land: "{land}", type: "{type}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: candidates
+    positions: "10-16,19-25"
+    iterates: { source: candidates, alias: c }
+    material: PLAYER_HEAD
+    head: "hdb:24064"
+    title: "<dark_green>{c.name}"
+    lore:
+      en:
+        - "<green>Click to link with this land."
+      fr:
+        - "<green>Cliquez pour lier à ce territoire."
+    click:
+      left:
+        - lands:link: { land: "{land}", type: "{type}", with: "{c.id}" }
+        - open_previous_menu
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: candidates
+    states:
+      - if:
+          - pagination_at_first: candidates
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: candidates
+    states:
+      - if:
+          - pagination_at_last: candidates
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu

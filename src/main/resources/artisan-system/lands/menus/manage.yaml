@@ -1,0 +1,190 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Manage the land"
+      fr: "<dark_green><bold>Gestion du territoire"
+size: 36
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: land
+    positions: "4"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:24064"
+    title: "<dark_green><bold>{l.name}"
+    lore:
+      en:
+        - "<white>Chunks: {l.chunks}"
+        - "<white>Trusted players: {l.trusts}"
+        - "<white>Bans: {l.bans}"
+      fr:
+        - "<white>Tronçons : {l.chunks}"
+        - "<white>Joueurs trust : {l.trusts}"
+        - "<white>Bannissements : {l.bans}"
+  # A land's chunks; for a sub-land, its area.
+  - id: claims
+    positions: "10"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:775"
+    title:
+      en: "<dark_green>Protected chunks"
+      fr: "<dark_green>Tronçons protégés"
+    lore:
+      en:
+        - "<green>Manage the chunks this land includes."
+      fr:
+        - "<green>Permet de gérer les tronçons que le territoire inclut."
+    click:
+      left:
+        - open_menu: { menu_id: claims, context: { land: "{land}" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{l.area_set}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:775"
+        title:
+          en: "<dark_green>Protected area:"
+          fr: "<dark_green>Zone protégée :"
+        lore:
+          en:
+            - "<gray>Server: {l.area_server}"
+            - "<gray>{l.area}"
+            - "<green>Click to define the area again."
+          fr:
+            - "<gray>Serveur : {l.area_server}"
+            - "<gray>{l.area}"
+            - "<green>Cliquez pour redéfinir la zone protégée."
+        click:
+          left:
+            - close_menu
+            - lands:select_cuboid: { land: "{land}" }
+      - if:
+          - placeholder_equals: { placeholder: "{l.area_elsewhere}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:775"
+        title:
+          en: "<dark_green>Protected area:"
+          fr: "<dark_green>Zone protégée :"
+        lore:
+          en:
+            - "<red>Defined on the server {l.area_server}"
+            - "<green>Click to define the area here."
+          fr:
+            - "<red>Défini sur le serveur : {l.area_server}"
+            - "<green>Cliquez pour définir la zone protégée."
+        click:
+          left:
+            - close_menu
+            - lands:select_cuboid: { land: "{land}" }
+      - if:
+          - placeholder_equals: { placeholder: "{l.subland}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:775"
+        title:
+          en: "<dark_green>Protected area:"
+          fr: "<dark_green>Zone protégée :"
+        lore:
+          en:
+            - "<red>Not defined"
+            - "<green>Click to define the area."
+          fr:
+            - "<red>Non définie"
+            - "<green>Cliquez pour définir la zone protégée."
+        click:
+          left:
+            - close_menu
+            - lands:select_cuboid: { land: "{land}" }
+  - id: trusts
+    positions: "12"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:41548"
+    title:
+      en: "<dark_green>Permissions"
+      fr: "<dark_green>Permissions"
+    lore:
+      en:
+        - "<green>Manage who may do what in the land."
+      fr:
+        - "<green>Permet de gérer les permissions du territoire."
+    click:
+      left:
+        - open_menu: { menu_id: trusts, context: { land: "{land}" } }
+  - id: settings
+    positions: "14"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:6385"
+    title:
+      en: "<dark_green>Settings"
+      fr: "<dark_green>Paramètres"
+    lore:
+      en:
+        - "<green>Change the land's settings."
+      fr:
+        - "<green>Permet de modifier les paramètres du territoire."
+    click:
+      left:
+        - open_menu: { menu_id: settings, context: { land: "{land}" } }
+  - id: bans
+    positions: "16"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:19778"
+    title:
+      en: "<dark_green>Bans"
+      fr: "<dark_green>Bannissements"
+    lore:
+      en:
+        - "<green>Manage the banned players."
+      fr:
+        - "<green>Permet de gérer les bannissements."
+    click:
+      left:
+        - open_menu: { menu_id: bans, context: { land: "{land}" } }
+  - id: sublands
+    positions: "27"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:11057"
+    title:
+      en: "<dark_green>Sub-lands"
+      fr: "<dark_green>Sous-territoires"
+    lore:
+      en:
+        - "<green>Manage the sub-lands."
+        - "<gray>Cuboid lands inside the chunks"
+        - "<gray>this land protects."
+      fr:
+        - "<green>Permet de gérer les sous-territoires."
+        - "<gray>Ils servent à définir des territoires cuboïdes à"
+        - "<gray>l'intérieur des chunks protégés par le territoire."
+    click:
+      left:
+        - open_menu: { menu_id: main, context: { scope: "sublands", owner: "", parent: "{land}" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{l.can_sublands}", value: "false" }
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu

@@ -11,8 +11,7 @@ import fr.iban.lands.events.PlayerLandCreateEvent;
 import fr.iban.lands.events.PlayerLandPreCreateEvent;
 import fr.iban.lands.model.SChunk;
 import fr.iban.lands.model.land.*;
-import fr.iban.lands.utils.Cuboid;
-import net.kyori.adventure.text.Component;
+import fr.iban.lands.messages.LandMessages;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
@@ -28,10 +27,12 @@ public class LandServiceImpl implements LandService {
 
     private final LandsPlugin plugin;
     private final LandRepository landRepository;
+    private final LandMessages messages;
 
     public LandServiceImpl(LandsPlugin plugin) {
         this.plugin = plugin;
         this.landRepository = plugin.getLandRepository();
+        this.messages = plugin.getMessages();
     }
 
     @Override
@@ -50,7 +51,7 @@ public class LandServiceImpl implements LandService {
             case SUBLAND -> new SubLand(id, name);
         };
 
-        if (isInvalidName(creator, land)) {
+        if (isInvalidName(creator, land, name)) {
             return null;
         }
 
@@ -59,7 +60,7 @@ public class LandServiceImpl implements LandService {
         PlayerLandCreateEvent createEvent = new PlayerLandCreateEvent(creator, land);
         createEvent.callEvent();
 
-        creator.sendMessage("§aLe territoire au nom de " + name + " a été créée.");
+        messages.send(creator, "land.created", "name", name);
         return land;
     }
 
@@ -69,34 +70,42 @@ public class LandServiceImpl implements LandService {
 
         if (land instanceof SubLand subLand) {
             subLand.setSuperLand(superLand);
-            subLand.setCuboid(new Cuboid(Bukkit.getWorlds().get(1), 0, 0, 0, 0, 0, 0), "non défini");
+            // No area until the owner selects one (MSLands put a placeholder in the second world).
+            subLand.setCuboid(null, null);
             superLand.getSubLands().put(subLand.getId(), subLand);
 
-            landRepository.updateLand(superLand);
+            // Its row of sublands, now that it knows its land (addLand ran before).
+            landRepository.updateLand(subLand);
         }
     }
 
-    private boolean isInvalidName(Player player, Land land) {
-        if (land.getName().length() > 16) {
-            player.sendMessage("§cLe nom du territoire ne doit pas dépasser 16 caractères.");
+    /** {@code name} for {@code land} (its type and owner), as MSLands checked it; the reason sent when invalid. */
+    private boolean isInvalidName(Player player, Land land, String name) {
+        if (name == null || name.isBlank()) {
+            messages.send(player, "land.name.empty");
             return true;
         }
 
-        if (land.getName().contains(" ")) {
-            player.sendMessage("§cLe nom du territoire ne doit pas contenir d'espaces.");
+        if (name.length() > 16) {
+            messages.send(player, "land.name.too_long");
+            return true;
+        }
+
+        if (name.contains(" ")) {
+            messages.send(player, "land.name.spaces");
             return true;
         }
 
         // Find a land with the same name, type and owner
         Land sameExistingLand = landRepository.getLands().stream()
-                .filter(l -> l.getName().equalsIgnoreCase(land.getName()))
+                .filter(l -> l.getName() != null && l.getName().equalsIgnoreCase(name))
                 .filter(l -> !l.getId().equals(land.getId()))
                 .filter(l -> l.getType() == land.getType())
                 .filter(l -> Objects.equals(l.getOwner(), land.getOwner()))
                 .findFirst().orElse(null);
 
         if (sameExistingLand != null) {
-            player.sendMessage("§cVous avez déjà un territoire à ce nom.");
+            messages.send(player, "land.name.taken");
             return true;
         }
 
@@ -105,13 +114,15 @@ public class LandServiceImpl implements LandService {
 
     @Override
     public void renameLand(Land land, Player player, String name) {
-        if (isInvalidName(player, land)) {
+        name = name == null ? null : name.trim();
+        // The new name, not the current one (MSLands checked the current one).
+        if (isInvalidName(player, land, name)) {
             return;
         }
 
         land.setName(name);
         landRepository.updateLand(land);
-        player.sendMessage("§aLe nom du territoire a bien été modifié.");
+        messages.send(player, "land.renamed");
     }
 
     @Override
@@ -133,10 +144,11 @@ public class LandServiceImpl implements LandService {
 
                 if (chunks.size() % 50 == 0) {
                     int loadedChunks = TTChunks - chunks.size();
-                    player.sendMessage(String.format("§aProtection des chunks... (%d/%d) [%f%%]", loadedChunks, TTChunks, Math.round(loadedChunks * 100.0F / TTChunks * 10.0F) / 10.0F));
+                    messages.send(player, "claim.progress", "done", loadedChunks, "total", TTChunks,
+                            "percent", Math.round(loadedChunks * 100.0F / TTChunks * 10.0F) / 10.0F);
                 }
             } else {
-                player.sendMessage("§a§lLa sélection a été protégée avec succès.");
+                messages.send(player, "claim.selection_done");
                 WrappedTask task = taskRef.get();
                 if (task != null) {
                     task.cancel();
@@ -148,7 +160,7 @@ public class LandServiceImpl implements LandService {
     @Override
     public void claim(Player player, SChunk chunk, Land land) {
         if (!hasEnouphClaims(player, land)) {
-            player.sendMessage("§cVous n'avez plus de claim disponible.");
+            messages.send(player, "claim.none_left");
             return;
         }
 
@@ -163,9 +175,9 @@ public class LandServiceImpl implements LandService {
             }
 
             claim(chunk, land);
-            player.sendActionBar(Component.text("§a§lLe tronçon a bien été claim."));
+            messages.actionBar(player, "claim.done");
         } else {
-            player.sendActionBar(Component.text("§c§lCe tronçon est déjà claim."));
+            messages.actionBar(player, "claim.taken");
         }
     }
 
@@ -181,9 +193,9 @@ public class LandServiceImpl implements LandService {
             }
 
             unclaim(chunk);
-            player.sendActionBar(Component.text("§a§lLe tronçon a bien été unclaim."));
+            messages.actionBar(player, "unclaim.done");
         } else {
-            player.sendActionBar(Component.text("§c§lCe tronçon ne vous appartient pas !"));
+            messages.actionBar(player, "unclaim.not_yours");
         }
     }
 
@@ -229,7 +241,7 @@ public class LandServiceImpl implements LandService {
         int remaining = landRepository.getRemainingChunkCount(uuid);
 
         if (remaining < amount) {
-            player.sendMessage("§cVous n'avez pas assez de claims.");
+            messages.send(player, "claims.not_enough");
             return;
         }
 
@@ -238,26 +250,26 @@ public class LandServiceImpl implements LandService {
 
         Player targetPlayer = Bukkit.getPlayer(target);
         if (targetPlayer != null) {
-            player.sendMessage("§aVous avez donné " + amount + " claims à " + targetPlayer.getName() + ".");
-            targetPlayer.sendMessage("§aVous avez reçu " + amount + " claims de " + player.getName() + ".");
+            messages.send(player, "claims.given", "amount", amount, "player", targetPlayer.getName());
+            messages.send(targetPlayer, "claims.received", "amount", amount, "player", player.getName());
         } else {
-            player.sendMessage("§aVous avez donné " + amount + " claims.");
+            messages.send(player, "claims.given_offline", "amount", amount);
         }
     }
 
     @Override
     public void ban(Player sender, Land land, UUID uuid) {
         if (sender.getUniqueId().equals(uuid)) {
-            sender.sendMessage("§cVous ne pouvez pas vous ban vous même !");
+            messages.send(sender, "ban.self");
             return;
         }
         if (land.isBanned(uuid)) {
-            sender.sendMessage("§cCe joueur est déjà banni.");
+            messages.send(sender, "ban.already");
             return;
         }
 
         landRepository.addBan(land, uuid);
-        sender.sendMessage("§aLe joueur a bien été banni.");
+        messages.send(sender, "ban.done");
 
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
@@ -267,22 +279,22 @@ public class LandServiceImpl implements LandService {
                     player.teleportAsync(plugin.getConfig().getLocation("spawn-location", Objects.requireNonNull(Bukkit.getWorld("world")).getSpawnLocation()));
                 }
             }
-            player.sendMessage("§aVous avez été banni du territoire " + land.getName() + " par " + sender.getName() + ".");
+            messages.send(player, "ban.notify", "land", land.getName(), "player", sender.getName());
         }
     }
 
     @Override
     public void unban(Player sender, Land land, UUID uuid) {
         if (!land.isBanned(uuid)) {
-            sender.sendMessage("§cCe joueur n'est pas banni.");
+            messages.send(sender, "unban.not_banned");
             return;
         }
 
         landRepository.removeBan(land, uuid);
-        sender.sendMessage("§aLe joueur a bien été débanni.");
+        messages.send(sender, "unban.done");
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
-            player.sendMessage("§aVous avez été débanni du territoire " + land.getName() + " par " + sender.getName() + ".");
+            messages.send(player, "unban.notify", "land", land.getName(), "player", sender.getName());
         }
     }
 }

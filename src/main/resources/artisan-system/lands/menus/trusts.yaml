@@ -1,0 +1,135 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Permissions"
+      fr: "<dark_green><bold>Permissions"
+size: 36
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  - name: trusts
+    type: list
+    source: { ref: "lands:trusts", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: trusts
+    positions: "10-16,19-25"
+    iterates: { source: trusts, alias: t }
+    material: PLAYER_HEAD
+    head: "playerhead:{t.name}"
+    title: "<dark_green><bold>{t.name}"
+    lore:
+      en:
+        - "<green>Left click to edit"
+        - "<red>Right click to remove"
+      fr:
+        - "<green>Clic gauche pour éditer"
+        - "<red>Clic droit pour supprimer"
+    click:
+      left:
+        - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "{t.id}", group: "" } }
+      right:
+        - lands:untrust: { land: "{land}", target: "{t.id}" }
+        - set_arg: { arg: refresh, value: "{t.id}" }
+  - id: global
+    positions: "27"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:2981"
+    title:
+      en: "<dark_green>Global permissions"
+      fr: "<dark_green>Permissions globales"
+    lore:
+      en:
+        - "<green>Permissions given"
+        - "<green>to everyone."
+      fr:
+        - "<green>Permet de définir des permissions"
+        - "<green>qui seront appliquées à tout le monde."
+    click:
+      left:
+        - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "global", group: "" } }
+  - id: guild
+    positions: "28"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:51046"
+    title:
+      en: "<dark_green>Guild permissions"
+      fr: "<dark_green>Permissions de guilde"
+    lore:
+      en:
+        - "<green>Permissions of the members"
+        - "<green>of your guild."
+      fr:
+        - "<green>Permet de définir les permissions"
+        - "<green>des membres de votre guilde."
+    click:
+      left:
+        - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "guild", group: "" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{l.guild_trust}", value: "false" }
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: trusts
+    states:
+      - if:
+          - pagination_at_first: trusts
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: trusts
+    states:
+      - if:
+          - pagination_at_last: trusts
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: add
+    positions: "35"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:2336"
+    title:
+      en: "<dark_green>Add"
+      fr: "<dark_green>Ajouter"
+    lore:
+      en:
+        - "<green>Add a player to edit their permissions."
+      fr:
+        - "<green>Permet d'ajouter un joueur pour éditer ses permissions."
+    click:
+      left:
+        - open_dialog: { dialog_id: trust_add, context: { land: "{land}" } }

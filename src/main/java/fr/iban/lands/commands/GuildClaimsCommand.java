@@ -1,6 +1,9 @@
 package fr.iban.lands.commands;
 
 import fr.iban.lands.LandsPlugin;
+import fr.iban.lands.messages.LandMessages;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.api.LandService;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
@@ -31,10 +34,12 @@ public class GuildClaimsCommand {
 
     private final LandRepository landRepository;
     private final LandsPlugin plugin;
+    private final LandMessages messages;
 
     public GuildClaimsCommand(LandsPlugin plugin) {
         this.plugin = plugin;
         this.landRepository = plugin.getLandRepository();
+        this.messages = plugin.getMessages();
     }
 
     @CommandPlaceholder
@@ -48,12 +53,12 @@ public class GuildClaimsCommand {
         UUID guildId = guildDataAccess.getGuildId(player.getUniqueId());
 
         if(guildId == null) {
-            player.sendMessage("§cVous n'êtes pas dans une guilde");
+            messages.send(player, "guildclaims.not_in_guild");
             return;
         }
 
         if (!guildDataAccess.canManageGuildLand(player.getUniqueId())) {
-            player.sendMessage("§cVous n'avez pas la permission d'accéder à cette commande");
+            messages.send(player, "guildclaims.no_permission");
             return;
         }
 
@@ -64,13 +69,11 @@ public class GuildClaimsCommand {
         ConfigurationSection pricesSection = config.getConfigurationSection("guild-claim-prices");
 
         if (pricesSection == null) {
-            player.sendMessage("§cErreur : La section des prix des claims n'est pas trouvée dans la configuration.");
+            messages.send(player, "guildclaims.prices_missing");
             return;
         }
 
-        player.sendMessage("§6--- Barème d'Achat des Claims de Guilde ---");
-        player.sendMessage("§7Nombre de Claims | Coût d'Achat");
-        player.sendMessage("§7---------------------------------");
+        messages.send(player, "guildclaims.info.header");
 
         Set<String> keys = pricesSection.getKeys(false);
 
@@ -89,26 +92,16 @@ public class GuildClaimsCommand {
                 int nextMinClaims = sortedKeys.get(i + 1);
                 int maxClaims = nextMinClaims - 1;
 
-                rangeDisplay = minClaims + " à " + maxClaims;
+                rangeDisplay = messages.text(player, "guildclaims.info.range_between", minClaims + " - " + maxClaims,
+                        "min", minClaims, "max", maxClaims);
             } else {
-                rangeDisplay = minClaims + " et +";
+                rangeDisplay = messages.text(player, "guildclaims.info.range_from", minClaims + "+", "min", minClaims);
             }
 
-            player.sendMessage(String.format("§a%s §7-> §e%d",
-                    rangeDisplay,
-                    price));
+            messages.send(player, "guildclaims.info.line", "range", plain(rangeDisplay), "price", price);
         }
 
-        player.sendMessage("§e---------------------------------");
-        player.sendMessage("§6▶ Informations de votre Guilde ◀");
-        player.sendMessage(String.format("§bClaims Actuels : §f%d §7/ §f%d", count, maxCount));
-        int remainingClaims = maxCount - count;
-        player.sendMessage(String.format("§bClaims Restants : §a%d", remainingClaims));
-        player.sendMessage("§e---------------------------------");
-        player.sendMessage("§6---------------------------------");
-        player.sendMessage("§7Pour acheter des claims, utilisez :");
-        player.sendMessage("§a/guildclaims buy <nombre>");
-        player.sendMessage("§6---------------------------------");
+        messages.send(player, "guildclaims.info.footer", "count", count, "max", maxCount, "remaining", maxCount - count);
     }
 
     public int getUnitClaimPriceSimple(int claimIndex, FileConfiguration config) {
@@ -141,14 +134,14 @@ public class GuildClaimsCommand {
         AbstractGuildDataAccess guildDataAccess = plugin.getGuildDataAccess();
 
         if (amount <= 0) {
-            player.sendMessage("§cVeuillez spécifier un nombre de claims valide à acheter.");
+            messages.send(player, "guildclaims.invalid_amount");
             return;
         }
 
         UUID guildId = guildDataAccess.getGuildId(player.getUniqueId());
 
         if(guildId == null || !guildDataAccess.canManageGuildLand(player.getUniqueId())) {
-            player.sendMessage("§cVous n'êtes pas dans une guilde ou vous n'avez pas la permission de gérer les claims.");
+            messages.send(player, "guildclaims.not_allowed");
             return;
         }
 
@@ -164,7 +157,7 @@ public class GuildClaimsCommand {
             int unitPrice = getUnitClaimPriceSimple(claimIndexToPrice, config);
 
             if (unitPrice == -1) {
-                player.sendMessage("§cErreur de configuration du barème de prix.");
+                messages.send(player, "guildclaims.prices_missing");
                 return;
             }
 
@@ -177,28 +170,24 @@ public class GuildClaimsCommand {
 
     private void showPurchaseConfirmationDialog(Player player, UUID guildId, int amount, long totalCost, int currentMax, int newMax) {
         Dialog dialog = Dialog.create(builder -> builder.empty()
-                .base(DialogBase.builder(Component.text("Confirmer l'achat de claims", NamedTextColor.GOLD))
+                .base(DialogBase.builder(messages.component(player, "guildclaims.dialog.title"))
                         .canCloseWithEscape(true)
                         .body(List.of(
                                 DialogBody.plainMessage(Component.empty()),
-                                DialogBody.plainMessage(Component.text("Nombre de claims à acheter: ", NamedTextColor.GRAY)
-                                        .append(Component.text(amount, NamedTextColor.WHITE))),
+                                DialogBody.plainMessage(messages.component(player, "guildclaims.dialog.amount", "amount", amount)),
                                 DialogBody.plainMessage(Component.empty()),
-                                DialogBody.plainMessage(Component.text("Coût total: ", NamedTextColor.GRAY)
-                                        .append(Component.text(totalCost + " $", NamedTextColor.YELLOW))),
+                                DialogBody.plainMessage(messages.component(player, "guildclaims.dialog.cost", "cost", totalCost)),
                                 DialogBody.plainMessage(Component.empty()),
-                                DialogBody.plainMessage(Component.text("Claims actuels: ", NamedTextColor.GRAY)
-                                        .append(Component.text(currentMax, NamedTextColor.WHITE))),
-                                DialogBody.plainMessage(Component.text("Nouveaux claims: ", NamedTextColor.GRAY)
-                                        .append(Component.text(newMax, NamedTextColor.GREEN))),
+                                DialogBody.plainMessage(messages.component(player, "guildclaims.dialog.current", "current", currentMax)),
+                                DialogBody.plainMessage(messages.component(player, "guildclaims.dialog.new", "new", newMax)),
                                 DialogBody.plainMessage(Component.empty()),
-                                DialogBody.plainMessage(Component.text("Voulez-vous confirmer cet achat?", NamedTextColor.AQUA))
+                                DialogBody.plainMessage(messages.component(player, "guildclaims.dialog.question"))
                         ))
                         .build()
                 )
                 .type(DialogType.confirmation(
-                        ActionButton.builder(Component.text("✓ Confirmer", TextColor.color(0xAEFFC1)))
-                                .tooltip(Component.text("Acheter " + amount + " claims pour " + totalCost + " $"))
+                        ActionButton.builder(messages.component(player, "guildclaims.dialog.confirm"))
+                                .tooltip(messages.component(player, "guildclaims.dialog.confirm_tooltip", "amount", amount, "cost", totalCost))
                                 .action(DialogAction.customClick(
                                         (view, audience) -> {
                                             if (audience instanceof Player p) {
@@ -211,8 +200,8 @@ public class GuildClaimsCommand {
                                                 .build()
                                 ))
                                 .build(),
-                        ActionButton.builder(Component.text("✗ Annuler", TextColor.color(0xFFA0B1)))
-                                .tooltip(Component.text("Annuler l'achat"))
+                        ActionButton.builder(messages.component(player, "guildclaims.dialog.cancel"))
+                                .tooltip(messages.component(player, "guildclaims.dialog.cancel_tooltip"))
                                 .action(null)
                                 .build()
                 ))
@@ -224,20 +213,18 @@ public class GuildClaimsCommand {
     private void processPurchase(Player player, UUID guildId, int amount, long totalCost, int newMaxCount) {
         AbstractGuildDataAccess guildDataAccess = plugin.getGuildDataAccess();
 
-        if (totalCost > 0 && !guildDataAccess.withdraw(guildId, totalCost, "Achat de claims")) {
-            player.sendMessage(Component.text("Votre guilde n'a pas assez d'argent, il vous faut " + totalCost + "$", NamedTextColor.RED));
+        String reason = messages.text(null, "guildclaims.bank_reason", "Achat de claims");
+        if (totalCost > 0 && !guildDataAccess.withdraw(guildId, totalCost, reason)) {
+            messages.send(player, "guildclaims.not_enough_money", "cost", totalCost);
             return;
         }
 
         landRepository.setChunkLimit(guildId, newMaxCount);
+        messages.send(player, "guildclaims.bought", "amount", amount, "cost", totalCost, "max", newMaxCount);
+    }
 
-        player.sendMessage(Component.text("Achat de claims réussi !", NamedTextColor.GREEN));
-        player.sendMessage(Component.text("Votre guilde a acheté ", NamedTextColor.GREEN)
-                .append(Component.text(amount, NamedTextColor.WHITE))
-                .append(Component.text(" claims maximum pour un coût total de ", NamedTextColor.GREEN))
-                .append(Component.text(totalCost, NamedTextColor.YELLOW))
-                .append(Component.text(" $.", NamedTextColor.GREEN)));
-        player.sendMessage(Component.text("Nouveau maximum de claims: ", NamedTextColor.GREEN)
-                .append(Component.text(newMaxCount, NamedTextColor.WHITE)));
+    /** A range as the price line shows it: the lang file's text without its tags. */
+    private static String plain(String miniMessage) {
+        return PlainTextComponentSerializer.plainText().serialize(MiniMessage.miniMessage().deserialize(miniMessage));
     }
 }

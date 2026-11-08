@@ -1,0 +1,119 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Settings"
+      fr: "<dark_green><bold>Paramètres"
+size: 36
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  # The flags the land's type supports.
+  - name: flags
+    type: list
+    source: { ref: "lands:flags", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: flags
+    positions: "10-16,19-25"
+    iterates: { source: flags, alias: f }
+    material: "{f.icon}"
+    title: "<dark_red>{f.name}"
+    lore:
+      en:
+        - "<aqua>[Click] <white>enable"
+      fr:
+        - "<aqua>[Clic] <white>activer"
+    click:
+      left:
+        - lands:toggle_flag: { land: "{land}", flag: "{f.key}" }
+        - set_arg: { arg: refresh, value: "{f.key}" }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{f.enabled}", value: "true" }
+        material: "{f.icon}"
+        title: "<dark_green>{f.name}"
+        lore:
+          en:
+            - "<aqua>[Click] <white>disable"
+          fr:
+            - "<aqua>[Clic] <white>désactiver"
+        click:
+          left:
+            - lands:toggle_flag: { land: "{land}", flag: "{f.key}" }
+            - set_arg: { arg: refresh, value: "{f.key}" }
+  - id: links
+    positions: "27"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:175"
+    title:
+      en: "<dark_green>Links"
+      fr: "<dark_green>Liens"
+    lore:
+      en:
+        - "<green>Share permissions or bans with your other lands."
+      fr:
+        - "<green>Permet de définir des liens avec vos autres territoires."
+    click:
+      left:
+        - open_menu: { menu_id: links, context: { land: "{land}" } }
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: flags
+    states:
+      - if:
+          - pagination_at_first: flags
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: flags
+    states:
+      - if:
+          - pagination_at_last: flags
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: rename
+    positions: "35"
+    iterates: { source: info, alias: l }
+    material: NAME_TAG
+    title:
+      en: "<dark_green>Rename"
+      fr: "<dark_green>Renommer"
+    lore:
+      en:
+        - "<green>Rename the land."
+      fr:
+        - "<green>Permet de renommer le territoire."
+    click:
+      left:
+        - open_dialog: { dialog_id: rename, context: { land: "{land}", current: "{l.name}" } }

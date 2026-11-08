@@ -6,38 +6,53 @@ import fr.iban.lands.enums.LinkType;
 import fr.iban.lands.model.SChunk;
 import fr.iban.lands.model.land.Land;
 import fr.iban.lands.model.land.LandEnterCommand;
+import fr.iban.lands.model.land.SubLand;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Where the lands are kept. The reads run once at start (and {@link #getLand} on a reload of one
+ * land); every write runs on ArtisanLands' single database thread, in the order it was asked.
+ */
 public interface Storage {
 
-    Map<SChunk, UUID> getChunks();
-
-    int getChunkCount(UUID uuid);
-
+    /** Every land with its trusts, flags, bans, effects, commands and, for a sub-land, its area. */
     Map<UUID, Land> getLands();
 
+    /** One land as {@link #getLands} reads it, null when it is gone. */
+    @Nullable Land getLand(UUID landId);
+
+    /** Sub-land id → id of the land it sits in. */
+    Map<UUID, UUID> getSubLands();
+
+    /** Land id → its links. */
+    Map<UUID, Map<LinkType, UUID>> getLinks();
+
+    /** The chunks claimed on this server, with their land's id. */
+    Map<SChunk, UUID> getChunks();
+
+    /** World of this server → the land a chunk nobody claimed belongs to. */
     Map<String, UUID> getWorldsDefaultLands();
 
     void setWorldDefaultLand(String world, Land land);
 
-    Map<UUID, UUID> getSubLands();
-
-    Land getLand(UUID landId);
+    /** Chunks claimed by the lands of {@code owner} (a player or a guild), on every server. */
+    int getChunkCount(UUID owner);
 
     void addLand(Land land);
 
     void deleteLand(Land land);
 
+    /** Its name, and a sub-land's area. */
     void updateLand(Land land);
+
+    void updateSublandRegion(SubLand subLand);
 
     void setChunk(Land land, SChunk chunk);
 
     void removeChunk(SChunk chunk);
-
-    void loadTrusts(Land land);
 
     void addTrust(Land land, UUID uuid, Action action);
 
@@ -51,19 +66,13 @@ public interface Storage {
 
     void removeGuildTrust(Land land, Action action);
 
-    Set<Flag> getFlags(Land land);
-
     void addFlag(Land land, Flag flag);
 
     void removeFlag(Land land, Flag flag);
 
-    Set<UUID> getBans(Land land);
-
     void addBan(Land land, UUID uuid);
 
     void removeBan(Land land, UUID uuid);
-
-    Map<UUID, Map<LinkType, UUID>> getLinks();
 
     void addLink(Land land, LinkType link, Land with);
 
@@ -81,11 +90,7 @@ public interface Storage {
 
     void removeEffect(Land land, String effect);
 
-    void loadEffects(Land land);
-
     void addCommand(Land land, LandEnterCommand command);
 
     void removeCommand(LandEnterCommand command);
-
-    Set<LandEnterCommand> getCommands(Land land);
 }

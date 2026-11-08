@@ -1,6 +1,12 @@
 package fr.iban.lands.listeners;
 
-import fr.iban.bukkitcore.event.PlayerPreTeleportEvent;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.Plugin;
+import java.lang.reflect.Method;
+import java.util.logging.Level;
+
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.enums.Action;
@@ -52,16 +58,40 @@ public class TeleportListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void onCoreTeleport(PlayerPreTeleportEvent event) {
-        Player player = event.getPlayer();
-
-        if (player == null) return;
-
-        Land land = landRepository.getLandAt(player.getLocation());
-
-        if (land.hasFlag(Flag.INSTANT_TELEPORT)) {
-            event.setDelay(0);
+    /**
+     * Core's {@code PlayerPreTeleportEvent} (its teleports and /home, /warp delays), listened to by
+     * name while Core is installed: no delay from a land with {@link Flag#INSTANT_TELEPORT}.
+     * Nothing without Core.
+     */
+    @SuppressWarnings("unchecked")
+    public static void hookCoreTeleports(LandsPlugin plugin) {
+        Plugin core = plugin.getServer().getPluginManager().getPlugin("Core");
+        if (core == null || !core.isEnabled()) return;
+        Class<? extends Event> type;
+        Method getPlayer;
+        Method setDelay;
+        try {
+            Class<?> found = Class.forName("fr.iban.bukkitcore.event.PlayerPreTeleportEvent", true, core.getClass().getClassLoader());
+            if (!Event.class.isAssignableFrom(found)) return;
+            type = (Class<? extends Event>) found;
+            getPlayer = type.getMethod("getPlayer");
+            setDelay = type.getMethod("setDelay", int.class);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            plugin.getLogger().info("Core's teleport event not found: the INSTANT_TELEPORT flag does not apply to its teleports.");
+            return;
         }
+        LandRepository lands = plugin.getLandRepository();
+        EventExecutor executor = (listener, event) -> {
+            if (!type.isInstance(event)) return;
+            try {
+                if (getPlayer.invoke(event) instanceof Player player
+                        && lands.getLandAt(player.getLocation()).hasFlag(Flag.INSTANT_TELEPORT)) {
+                    setDelay.invoke(event, 0);
+                }
+            } catch (ReflectiveOperationException e) {
+                plugin.getLogger().log(Level.FINE, "Core's teleport event could not be read", e);
+            }
+        };
+        plugin.getServer().getPluginManager().registerEvent(type, new Listener() { }, EventPriority.NORMAL, executor, plugin);
     }
 }

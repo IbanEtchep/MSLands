@@ -1,0 +1,49 @@
+schema: menu/v1
+# Opened with land, target (a UUID) and target_name.
+title:
+  - kind: plain
+    value:
+      en: "<dark_green>Unban this player?"
+      fr: "<dark_green>Débannir ce joueur ?"
+size: 27
+inputs:
+  - name: land
+    type: string
+  - name: target
+    type: string
+  - name: target_name
+    type: string
+elements:
+  - id: frame
+    positions: "0-26"
+    material: GRAY_STAINED_GLASS_PANE
+    title: " "
+  - id: target
+    positions: "13"
+    material: PLAYER_HEAD
+    head: "playerhead:{target_name}"
+    title: "<white>{target_name}"
+    lore:
+      en:
+        - "<yellow>Unban {target_name}?"
+      fr:
+        - "<yellow>Voulez-vous débannir {target_name} ?"
+  - id: confirm
+    positions: "11"
+    material: LIME_CONCRETE
+    title:
+      en: "<green>Unban"
+      fr: "<green>Débannir"
+    click:
+      left:
+        - lands:unban: { land: "{land}", player: "{target}" }
+        - open_previous_menu
+  - id: cancel
+    positions: "15"
+    material: RED_CONCRETE
+    title:
+      en: "<red>Cancel"
+      fr: "<red>Annuler"
+    click:
+      left:
+        - open_previous_menu

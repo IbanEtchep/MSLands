@@ -1,0 +1,26 @@
+schema: dialog/v1
+# Opened by lands:main with its scope, owner and parent.
+title:
+  en: "Create a land"
+  fr: "Créer un territoire"
+inputs:
+  - id: name
+    type: text
+    label:
+      en: "Name (16 characters at most, no spaces)"
+      fr: "Nom (16 caractères au plus, sans espace)"
+    max_length: 16
+buttons:
+  - id: create
+    label:
+      en: "<green>Create"
+      fr: "<green>Créer"
+    actions:
+      - lands:create: { scope: "{scope}", owner: "{owner}", parent: "{parent}", name: "{name}" }
+      - open_previous_menu
+  - id: cancel
+    label:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    actions:
+      - open_previous_menu

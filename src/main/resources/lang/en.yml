@@ -1,0 +1,287 @@
+# ArtisanLands messages (MiniMessage). Each <name> is replaced by its value, as plain text.
+# A player's language file is read first, then the default language's (config.yml).
+disabled: "<red>Lands are not enabled on this server."
+player_only: "<red>Only a player can run this command."
+no_permission_here: "<red>You are not allowed to do that in this claim."
+menu:
+  unavailable: "<red>This menu is not available. Tell an administrator."
+
+land:
+  wilderness: "Wilderness"
+  not_found: "<red>The land <name> does not exist."
+  created: "<green>The land <name> was created."
+  renamed: "<green>The land was renamed."
+  deleted: "<red>The land <name> was deleted."
+  none: "<red>You have no land. Create one with /land create [name]"
+  cannot_manage: "<red>You cannot manage this land."
+  name:
+    too_long: "<red>A land's name is 16 characters at most."
+    spaces: "<red>A land's name cannot contain spaces."
+    empty: "<red>Give the land a name."
+    taken: "<red>You already have a land with that name."
+
+guild:
+  disabled: "<red>Guild lands are not enabled on this server."
+  not_admin: "<red>Only a guild administrator can open this menu."
+  owner: "Guild - <guild>"
+
+claim:
+  done: "<green><bold>Chunk claimed."
+  taken: "<red><bold>This chunk is already claimed."
+  none_left: "<red>You have no claim left."
+  progress: "<green>Claiming chunks... (<done>/<total>) [<percent>%]"
+  selection_done: "<green><bold>The selection is now protected."
+unclaim:
+  done: "<green><bold>Chunk unclaimed."
+  not_yours: "<red><bold>This chunk is not yours!"
+  forced: "<green>The claim was removed."
+
+claims:
+  not_enough: "<red>You do not have enough claims."
+  given: "<green>You gave <amount> claims to <player>."
+  given_offline: "<green>You gave <amount> claims."
+  received: "<green>You received <amount> claims from <player>."
+
+limits:
+  increased: "<gray>Claim limit of <dark_gray><player></dark_gray> raised by <dark_gray><amount>"
+  decreased: "<gray>Claim limit of <dark_gray><player></dark_gray> lowered by <dark_gray><amount>"
+  show: "<gray>Claim limit of <dark_gray><player></dark_gray>: <dark_gray><amount>"
+
+ban:
+  self: "<red>You cannot ban yourself!"
+  already: "<red>This player is already banned."
+  done: "<green>The player was banned."
+  notify: "<red>You were banned from the land <land> by <player>."
+  unknown_player: "<red>The player <player> never played on this server."
+  enter_denied: "<red>You cannot enter this land: its owner banned you."
+unban:
+  not_banned: "<red>This player is not banned."
+  done: "<green>The player was unbanned."
+  notify: "<green>You were unbanned from the land <land> by <player>."
+
+trust:
+  unknown_player: "<red>The player <player> never played on this server."
+
+link:
+  self: "<red>A land cannot be linked to itself."
+
+kick:
+  done: "<green>The player was kicked out."
+  notify: "<red>You were kicked out of <player>'s land."
+  denied: "<red>You are not allowed to kick this player out of the land they are in."
+  self: "<red>You cannot do that to yourself..."
+
+bypass:
+  "on": "<dark_gray><bold>Bypass: <green>On"
+  "off": "<dark_gray><bold>Bypass: <red>Off"
+seeclaims:
+  "on": "<green>Claim borders shown."
+  "off": "<red>Claim borders hidden."
+
+create:
+  usage: "<gray>/land create [name]"
+
+enter:
+  # Action bar when changing land. <from_owner> and <to_owner>: " ☗ owner" or nothing.
+  bar: "<bold><#F57C00><from><#FFA726><from_owner> <dark_gray>➜ <#AFB42B><to><#D4E157><to_owner>"
+
+flag:
+  silent_mobs:
+    sublands: "<red>This flag is not supported on sub-lands."
+    changing: "<green>Changing the mobs..."
+    silent: "<green>The land's mobs are now silent."
+    noisy: "<green>The land's mobs are now noisy."
+
+portal:
+  cancelled: "<red>The portal was not created: it would be in a claim where you cannot place blocks."
+
+map:
+  land: "<dark_green>Land: <land>"
+  owner_you: "<dark_green>Owner: you"
+  land_other: "<#B95608>Land: <land>"
+  owner: "<#B95608>Owner: <owner>"
+  guild_land: "<dark_green>Guild land: <land>"
+  guild_land_other: "<#B95608>Guild land: <land>"
+  guild_owner: "<#B95608>Owner: guild <guild>"
+  click_claim: "<gray>(click to claim)"
+  click_unclaim: "<gray>(click to unclaim)"
+
+selection:
+  start: "<dark_green><bold>Selecting an area."
+  quit: "<red>You left the selection mode."
+  pos1: "<green><bold>Position 1 set."
+  pos2: "<green><bold>Position 2 set."
+  contains: "<green><bold>Your selection holds <count> chunks."
+  verifying: "<green><bold>Checking the selection..."
+  pos1_missing: "<red><bold>Position 1 is not set yet!"
+  pos2_missing: "<red><bold>Position 2 is not set yet!"
+  both_missing: "<red><bold>Set both positions first!"
+  too_big: "<red><bold>The selection is too large!"
+  foreign_chunks: "<red><bold>The selection holds chunks that are claimed by another land than <land>."
+  nothing_to_claim: "<red><bold>There is no chunk to claim in the selection."
+  too_many: "<red><bold>You are trying to claim <count> chunks but only <remaining> are left."
+  nothing_to_unclaim: "<red><bold>There is no chunk to unclaim in the selection."
+  unclaimed: "<green><bold>The selection was unclaimed."
+  invalid: "<red><bold>That is not a selection keyword."
+  # The keywords can be clicked (or typed in the chat). They stay the same in every language.
+  help: "<yellow><bold>Selection keywords (hover and click): <click:run_command:'/sayinchat pos1'><hover:show_text:'<green>Click to set position 1'><gold><bold>pos1</hover></click><yellow><bold>, <click:run_command:'/sayinchat pos2'><hover:show_text:'<green>Click to set position 2'><gold><bold>pos2</hover></click><yellow><bold>, <click:run_command:'/sayinchat claim'><hover:show_text:'<green>Click to claim the selection'><green><bold>claim</hover></click><yellow><bold>, <click:run_command:'/sayinchat unclaim'><hover:show_text:'<green>Click to unclaim the selection'><red><bold>unclaim</hover></click><yellow><bold> and <click:run_command:'/sayinchat quit'><hover:show_text:'<green>Click to leave the selection mode'><red><bold>quit</hover></click><yellow><bold>."
+  help_admin: "<yellow><bold>Admin: <click:run_command:'/sayinchat forceunclaim'><hover:show_text:'<green>Unclaim EVERY chunk of the selection'><red><bold>forceunclaim</hover></click>"
+  cuboid:
+    warning: "<red><bold>Careful: the sub-land must be inside your land to work."
+    saved: "<green><bold>The selection was saved."
+    outside: "<red><bold>The selection must be inside the land <land>."
+    help: "<yellow><bold>Selection keywords (hover and click): <click:run_command:'/sayinchat pos1'><hover:show_text:'<green>Click to set position 1'><gold><bold>pos1</hover></click><yellow><bold>, <click:run_command:'/sayinchat pos2'><hover:show_text:'<green>Click to set position 2'><gold><bold>pos2</hover></click><yellow><bold>, <click:run_command:'/sayinchat sauvegarder'><hover:show_text:'<green>Click to save the area'><green><bold>sauvegarder</hover></click><yellow><bold> and <click:run_command:'/sayinchat quit'><hover:show_text:'<green>Click to leave the selection mode'><red><bold>quit</hover></click><yellow><bold>."
+
+help:
+  text: |-
+    <#fbeba7>Your lands are protected with the commands below.
+
+    <#fbeba7>- <click:suggest_command:'/lands'><hover:show_text:'<gray>Click to type the command'><#B95608>/lands</hover></click> - Opens the menu of your lands.
+    <#fbeba7>- <click:suggest_command:'/land claim '><hover:show_text:'<gray>Click to type the command'><#B95608>/land claim [land]</hover></click> - Gives the chunk you stand in to the land chosen, or to your first land.
+    <#fbeba7>- <click:suggest_command:'/land unclaim'><hover:show_text:'<gray>Click to type the command'><#B95608>/land unclaim</hover></click> - Removes the chunk you stand in from your lands.
+    <#fbeba7>- <click:suggest_command:'/land map '><hover:show_text:'<gray>Click to type the command'><#B95608>/land map [land]</hover></click> - Shows a map of the lands around. Claims or unclaims when a land is chosen.
+    <#fbeba7>- <click:suggest_command:'/land kick '><hover:show_text:'<gray>Click to type the command'><#B95608>/land kick [player]</hover></click> - Sends a player standing in your land back to spawn.
+    <#fbeba7>- <click:suggest_command:'/land seeclaims'><hover:show_text:'<gray>Click to type the command'><#B95608>/land seeclaims</hover></click> - Shows the borders of the claims.
+
+    <#fbeba7><#B95608>Chunks</#B95608> are <#B95608>16x256x16 blocks</#B95608>; press <#B95608>F3+G</#B95608> to see them.
+
+admin:
+  setspawn: "<green>Spawn location set."
+  debug:
+    "on": "<white>Debug mode: <green>On"
+    "off": "<white>Debug mode: <red>Off"
+    detail: |-
+      <white><action>:
+       globalTrust: <global>
+       selfTrust: <self>
+       guildTrust: <guild>
+       bypass: <bypass>
+  chunkinfo:
+    header: "<gold><bold>Chunk X:<x> Z:<z>"
+    type: "<dark_gray>Type: <white><type>"
+    land: "<dark_gray>Land: <white><land>"
+    claimed_at: "<dark_gray>Claimed on: <white><date>"
+    none: "<red>This chunk is not claimed."
+  default_world_land: "<red>The default land of world <world> is now <land>."
+  effect:
+    unknown: "<red>No such effect."
+    added: "<green>Effect added."
+    removed: "<green>Effect removed."
+    list_header: "<gold>Effects of the land <land>:"
+    list_line: "<dark_gray>- <white><effect> <amplifier>"
+  command:
+    added: "<green>Command added."
+    removed: "<green>Command removed."
+    invalid_id: "<red>The land's or the command's id is not valid."
+    not_found: "<red>No such command."
+    list_header: "<gold>Enter commands of the land <land>:"
+    list_line: "<dark_gray>- <white><command> <dark_gray><console></dark_gray> <red><bold><click:run_command:'/land admin command remove <land_id> <command_id>'><hover:show_text:'<gray>Click to remove this command'>[Remove]</hover></click>"
+    console: "[Console]"
+
+guildclaims:
+  not_in_guild: "<red>You are not in a guild."
+  no_permission: "<red>You are not allowed to use this command."
+  not_allowed: "<red>You are not in a guild, or not allowed to manage its claims."
+  prices_missing: "<red>Error: the claim prices are missing from the configuration."
+  invalid_amount: "<red>Give a valid number of claims to buy."
+  info:
+    header: |-
+      <gold>--- Guild claim prices ---
+      <gray>Number of claims | Price
+      <gray>---------------------------------
+    range_between: "<min> to <max>"
+    range_from: "<min> and more"
+    line: "<green><range> <gray>-> <yellow><price>"
+    footer: |-
+      <yellow>---------------------------------
+      <gold>▶ Your guild ◀
+      <aqua>Claims used: <white><count> <gray>/ <white><max>
+      <aqua>Claims left: <green><remaining>
+      <yellow>---------------------------------
+      <gray>To buy claims, use:
+      <green>/guildclaims buy [amount]
+  dialog:
+    title: "<gold>Confirm the purchase of claims"
+    amount: "<gray>Claims to buy: <white><amount>"
+    cost: "<gray>Total cost: <yellow><cost> $"
+    current: "<gray>Current claims: <white><current>"
+    new: "<gray>New claims: <green><new>"
+    question: "<aqua>Confirm this purchase?"
+    confirm: "<#AEFFC1>✓ Confirm"
+    confirm_tooltip: "Buy <amount> claims for <cost> $"
+    cancel: "<#FFA0B1>✗ Cancel"
+    cancel_tooltip: "Cancel the purchase"
+  not_enough_money: "<red>Your guild does not have enough money: <cost> $ needed."
+  bank_reason: "Claims purchase"
+  bought: |-
+    <green>Claims bought!
+    <green>Your guild bought <white><amount></white> more claims for <yellow><cost></yellow> $.
+    <green>New claim limit: <white><max>
+
+# Labels of a land's permissions (permission menus).
+permissions:
+  all: "Everything"
+  block_break: "Break blocks"
+  block_place: "Place blocks"
+  open_container: "Open containers (chests, furnaces, hoppers...)"
+  bucket_empty: "Empty buckets"
+  bucket_fill: "Fill buckets"
+  use: "Use doors, trapdoors, repeaters..."
+  passive_kill: "Hit passive entities"
+  tagged_kill: "Kill named entities"
+  set_warp: "Set a warp in your claim"
+  set_home: "Set a home in your claim"
+  shop_create: "Create a shop in your warp"
+  shop_open: "Open the shops in your warp"
+  use_bed: "Use beds"
+  use_respawn_anchor: "Use respawn anchors"
+  use_anvil: "Use anvils"
+  entity_interact: "Interact with entities (e.g. villagers)"
+  lectern_take: "Take/put books on lecterns"
+  lectern_read: "Read books on lecterns"
+  brewing_stand_interact: "Use brewing stands"
+  physical_interact: "Physical interactions (pressure plates, tripwires...)"
+  flower_pot_interact: "Interact with flower pots"
+  chiseled_bookshelf_interact: "Interact with chiseled bookshelves"
+  use_spawn_egg: "Use spawn eggs"
+  fertilize: "Fertilize"
+  dragon_egg_interact: "Interact with dragon eggs"
+  drop: "Drop items"
+  leash: "Leash animals"
+  armor_stand_interact: "Interact with armor stands"
+  frost_walk: "Make ice with Frost Walker"
+  chorus_teleport: "Teleport by eating chorus fruit"
+  ender_pearl_teleport: "Teleport with ender pearls"
+  cauldron_fill_empty: "Fill/empty cauldrons"
+  vehicle_place_break: "Place/break vehicles (boats, minecarts)"
+  change_beacon_effect: "Change a beacon's effect"
+  sign_edit: "Edit signs"
+  shelf_interact: "Interact with shelves"
+
+permission_groups:
+  building: "Building/breaking"
+  containers: "Containers"
+  plugins: "Plugin actions"
+  use: "Doors/redstone"
+  interact: "Interactions"
+  teleport: "Teleportation"
+
+# Labels of a land's settings (flags).
+flags:
+  invincible: "Players cannot be hurt"
+  pvp: "PvP"
+  auto_replant: "Crops replant themselves"
+  doors_autoclose: "Doors close themselves"
+  no_mob_spawning: "No mob spawning"
+  silent_enter_quit: "No enter/leave message"
+  invisible: "Players inside are invisible"
+  instant_teleport: "No teleport delay from this land"
+  explosions: "Explosions"
+  block_damages_by_entity: "Entities damage blocks (endermen, withers...)"
+  pressure_plate_by_entity: "Entities use pressure plates"
+  tripwire_by_entity: "Entities use tripwires"
+  farmland_grief: "Farmland can be trampled"
+  fire: "Fire damages and spreads"
+  silent_mobs: "The land's mobs are silent"
+  liquid_spread: "Liquids from outside the claim flow in"
+  shop_money_to_guild_bank: "Shop money goes to the guild bank"

@@ -10,3 +10,12 @@ guild-claim-prices:
   0: 0
   # Tranche 5 à 10
   5: 1000
+
+# Name of this server in the lands' tables (column "server" of the chunks and sub-lands).
+# Empty: the name Artisan gives it (name in plugins/Artisan/environment.yml). It must be the
+# servername Core gave it under MSLands, else the chunks claimed before are not loaded here.
+server-name: ""
+
+# Language of the messages for a player whose language is not available, and for the console.
+# The messages themselves are in plugins/Artisan/modules/lands/lang/.
+language: fr

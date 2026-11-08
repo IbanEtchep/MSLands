@@ -1,0 +1,109 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Chunks"
+      fr: "<dark_green><bold>Tronçons"
+size: 36
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: land
+    positions: "4"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:24064"
+    title: "<dark_green><bold>{l.name}"
+    lore:
+      en:
+        - "<white>Chunks: {l.chunks}"
+      fr:
+        - "<white>Tronçons : {l.chunks}"
+  - id: here
+    positions: "10"
+    iterates: { source: info, alias: l }
+    material: PAPER
+    title:
+      en: "<dark_green>Chunk"
+      fr: "<dark_green>Tronçon"
+    lore:
+      en:
+        - "<green>Left click: add the chunk you stand in."
+        - "<red>Right click: remove the chunk you stand in."
+        - "<yellow>Also: /land claim|unclaim [land]"
+      fr:
+        - "<green>Clic gauche : ajouter le tronçon où vous vous trouvez."
+        - "<red>Clic droit : retirer le tronçon où vous vous trouvez."
+        - "<yellow>Vous pouvez aussi utiliser /land (un)claim [territoire]"
+    click:
+      left:
+        - lands:claim_here: { land: "{land}" }
+        - set_arg: { arg: refresh, value: "claim" }
+      right:
+        - lands:unclaim_here: { land: "{land}" }
+        - set_arg: { arg: refresh, value: "unclaim" }
+  - id: selection
+    positions: "12"
+    iterates: { source: info, alias: l }
+    material: PAPER
+    title:
+      en: "<dark_green>Selection"
+      fr: "<dark_green>Sélection"
+    lore:
+      en:
+        - "<green>(Un)claim an area selected in the chat."
+      fr:
+        - "<green>Ouvre le mode sélection."
+    click:
+      left:
+        - close_menu
+        - lands:select_area: { land: "{land}" }
+  - id: map
+    positions: "14"
+    iterates: { source: info, alias: l }
+    material: MAP
+    title:
+      en: "<dark_green>Map"
+      fr: "<dark_green>Map"
+    lore:
+      en:
+        - "<green>(Un)claim from the chunk map."
+      fr:
+        - "<green>Permet de (un)claim à partir du chunk map."
+    click:
+      left:
+        - close_menu
+        - lands:show_map: { land: "{land}" }
+  - id: list
+    positions: "16"
+    iterates: { source: info, alias: l }
+    material: PAPER
+    title:
+      en: "<dark_green>List of chunks"
+      fr: "<dark_green>Liste des tronçons"
+    lore:
+      en:
+        - "<green>The land's chunks on this server."
+      fr:
+        - "<green>Les tronçons du territoire sur ce serveur."
+    click:
+      left:
+        - open_menu: { menu_id: chunks, context: { land: "{land}" } }
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu

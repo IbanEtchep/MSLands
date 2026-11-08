@@ -1,9 +1,11 @@
 package fr.iban.lands.utils;
 
 import com.tcoded.folialib.wrapper.task.WrappedTask;
-import fr.iban.bukkitcore.CoreBukkitPlugin;
+import fr.iban.lands.messages.LandMessages;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
+import fr.iban.lands.model.SChunk;
+import fr.iban.lands.model.land.Land;
 import fr.iban.lands.model.land.SubLand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -37,60 +39,53 @@ public class CuboidSelector {
         this.player = player;
         this.quitCallback = quitCallback;
         Cuboid currentCuboid = land.getCuboid();
-        this.pos1 = currentCuboid.getLowerNE();
-        this.pos2 = currentCuboid.getUpperSW();
-        showParticules(currentCuboid);
+        // A new sub-land has no area yet; one on another server's world neither.
+        if (currentCuboid != null) {
+            this.pos1 = currentCuboid.getLowerNE();
+            this.pos2 = currentCuboid.getUpperSW();
+            showParticules(currentCuboid);
+        }
     }
 
     public void startSelecting() {
-        player.sendMessage("§c§lAttention, le sous-territoire doit se trouver dans votre territoire pour fonctionner.");
-        player.sendMessage(getHelpText());
-        CoreBukkitPlugin plugin = CoreBukkitPlugin.getInstance();
-        plugin.getTextInputs().put(player.getUniqueId(), component -> {
-            String text = ChatUtils.toPlainText(component);
-
+        LandMessages messages = plugin.getMessages();
+        messages.send(player, "selection.cuboid.warning");
+        messages.send(player, "selection.cuboid.help");
+        plugin.getChatInputs().await(player, text -> {
             if (text.equalsIgnoreCase("pos1")) {
                 cancelTask();
                 pos1 = player.getLocation();
-                player.sendMessage("§a§lPosition 1 définie.");
-
-                if(pos2 != null && pos2.getWorld() != pos1.getWorld()){
+                messages.send(player, "selection.pos1");
+                if (pos2 != null && pos2.getWorld() != pos1.getWorld()) {
                     pos2 = null;
                 }
-
                 Cuboid cuboid = getCuboid();
-                if (cuboid != null) {
-                    showParticules(cuboid);
-                }
+                if (cuboid != null) showParticules(cuboid);
             } else if (text.equalsIgnoreCase("pos2")) {
                 cancelTask();
                 pos2 = player.getLocation();
-                player.sendMessage("§a§lPosition 2 définie.");
-
-                if(pos1 != null && pos2.getWorld() != pos1.getWorld()){
+                messages.send(player, "selection.pos2");
+                if (pos1 != null && pos2.getWorld() != pos1.getWorld()) {
                     pos1 = null;
                 }
-
                 Cuboid cuboid = getCuboid();
-                if (cuboid != null) {
-                    showParticules(cuboid);
-                }
-            } else if (text.equalsIgnoreCase("sauvegarder")) {
+                if (cuboid != null) showParticules(cuboid);
+            } else if (text.equalsIgnoreCase("sauvegarder") || text.equalsIgnoreCase("save")) {
                 Cuboid cuboid = getCuboid();
-                boolean isValid = verif(cuboid);
-                if (isValid) {cancelTask();
-                    land.setCuboid(cuboid, LandsPlugin.getInstance().getServerName());
+                if (verif(cuboid)) {
+                    cancelTask();
+                    land.setCuboid(cuboid, plugin.getServerName());
                     landRepository.updateLand(land);
-                    player.sendMessage("§a§lLa selection a été sauvegardée avec succès.");
+                    messages.send(player, "selection.cuboid.saved");
+                    plugin.getChatInputs().cancel(player);
                     quitCallback.run();
-                    plugin.getTextInputs().remove(player.getUniqueId());
                 }
-            } else if (text.startsWith("quit")) {
+            } else if (text.toLowerCase(java.util.Locale.ROOT).startsWith("quit")) {
                 cancelTask();
+                plugin.getChatInputs().cancel(player);
                 quitCallback.run();
-                plugin.getTextInputs().remove(player.getUniqueId());
             } else {
-                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
+                messages.send(player, "selection.invalid");
                 startSelecting();
             }
         });
@@ -100,37 +95,6 @@ public class CuboidSelector {
         if (particleTask != null) {
             particleTask.cancel();
         }
-    }
-
-    private Component getHelpText() {
-        Component pos1 =
-                Component.text("§6§lpos1")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour définir la position 1")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat pos1"));
-        Component pos2 =
-                Component.text("§6§lpos2")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour définir la position 2")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat pos2"));
-        Component claim =
-                Component.text("§a§lsauvegarder")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour claim la sélection")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat sauvegarder"));
-        Component quit =
-                Component.text("§c§lquitter")
-                        .hoverEvent(
-                                HoverEvent.showText(Component.text("§aCliquez pour quitter le mode sélection")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat quit"));
-
-        return Component.text(
-                        "§e§lLes mots clés pour la création d'une sélection sont (hover-clic possible) : ")
-                .append(pos1)
-                .append(Component.text(" §e§l, ", NamedTextColor.YELLOW, TextDecoration.BOLD))
-                .append(pos2)
-                .append(Component.text(" §e§l, ", NamedTextColor.YELLOW, TextDecoration.BOLD))
-                .append(claim)
-                .append(Component.text(" §e§l, ", NamedTextColor.YELLOW, TextDecoration.BOLD))
-                .append(quit)
-                .append(Component.text(".", NamedTextColor.RED, TextDecoration.BOLD));
     }
 
     private boolean arePosSet() {
@@ -146,21 +110,20 @@ public class CuboidSelector {
     }
 
     private boolean verif(Cuboid cuboid) {
-        player.sendMessage("§a§lVérification de la sélection...");
+        plugin.getMessages().send(player, "selection.verifying");
         if (cuboid == null) {
             if (pos1 == null) {
-                player.sendMessage("§c§lLa position 1 n'a pas encore été définie !");
+                plugin.getMessages().send(player, "selection.pos1_missing");
             } else {
-                player.sendMessage("§c§lLa position 2 n'a pas encore été définie !");
+                plugin.getMessages().send(player, "selection.pos2_missing");
             }
             return false;
         }
 
-        if (landRepository.getLandAt(cuboid.getUpperSW().getChunk()) != landRepository.getLandAt(cuboid.getLowerNE().getChunk())) {
-            player.sendMessage(
-                    "§c§lLa selection doit se trouver dans le territoire "
-                            + land.getSuperLand().getName()
-                            + ".");
+        // Both corners in the parent land (MSLands only compared them with each other).
+        Land parent = land.getSuperLand();
+        if (landRepository.getLandAt(new SChunk(cuboid.getUpperSW())) != parent || landRepository.getLandAt(new SChunk(cuboid.getLowerNE())) != parent) {
+            plugin.getMessages().send(player, "selection.cuboid.outside", "land", land.getSuperLand().getName());
             return false;
         }
 

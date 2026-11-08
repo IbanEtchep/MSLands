@@ -1,0 +1,25 @@
+schema: dialog/v1
+# Opened by lands:trusts with land. lands:open_trust opens that player's permissions.
+title:
+  en: "Add a player"
+  fr: "Ajouter un joueur"
+inputs:
+  - id: name
+    type: text
+    label:
+      en: "Player name"
+      fr: "Nom du joueur"
+    max_length: 16
+buttons:
+  - id: add
+    label:
+      en: "<green>Edit their permissions"
+      fr: "<green>Éditer ses permissions"
+    actions:
+      - lands:open_trust: { land: "{land}", player: "{name}" }
+  - id: cancel
+    label:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    actions:
+      - open_previous_menu

@@ -29,13 +29,13 @@ public class LandParameterType implements ParameterType<BukkitCommandActor, Land
         Player sender = actor.asPlayer();
 
         if (sender == null) {
-            throw new CommandErrorException("Vous devez être un joueur pour exécuter cette commande.");
+            throw new CommandErrorException(plugin.getMessages().legacy(actor.sender(), "player_only"));
         }
 
         Land land = plugin.getLandRepository().getManageableLandFromName(sender, value);
 
         if (land == null) {
-            throw new CommandErrorException("Le territoire " + value + " n''existe pas.");
+            throw new CommandErrorException(plugin.getMessages().legacy(sender, "land.not_found", "name", value));
         }
 
         return land;

@@ -1,0 +1,142 @@
+schema: menu/v1
+# The lands of a player, a guild, the server (system) or of a land (sub-lands).
+# Opened by /lands with scope, owner (the player's or guild's UUID) and parent (a land's id, for sublands).
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Lands"
+      fr: "<dark_green><bold>Territoires"
+size: 36
+inputs:
+  - name: scope
+    type: string
+  - name: owner
+    type: string
+  - name: parent
+    type: string
+  # Empty unless the viewer may manage these lands.
+  - name: lands
+    type: list
+    source: { ref: "lands:lands", params: { scope: "{scope}", owner: "{owner}", parent: "{parent}" } }
+  # One row for a player's or a guild's lands, none otherwise.
+  - name: limits
+    type: list
+    source: { ref: "lands:limits", params: { scope: "{scope}", owner: "{owner}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: lands
+    positions: "10-16,19-25"
+    iterates: { source: lands, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:24064"
+    title: "<dark_green>{l.name}"
+    lore:
+      en:
+        - "<green>Left click to manage this land."
+        - "<red>Right click to delete it."
+        - ""
+        - "<white>Chunks: {l.chunks}"
+        - "<white>Trusted players: {l.trusts}"
+        - "<white>Bans: {l.bans}"
+      fr:
+        - "<green>Clic gauche pour gérer ce territoire."
+        - "<red>Clic droit pour supprimer ce territoire."
+        - ""
+        - "<white>Tronçons : {l.chunks}"
+        - "<white>Joueurs trust : {l.trusts}"
+        - "<white>Bannissements : {l.bans}"
+    click:
+      left:
+        - open_menu: { menu_id: manage, context: { land: "{l.id}" } }
+      right:
+        - open_menu: { menu_id: delete_confirm, context: { land: "{l.id}", from: "menu" } }
+  - id: limits
+    positions: "27"
+    iterates: { source: limits, alias: m }
+    material: PLAYER_HEAD
+    head: "hdb:20774"
+    title:
+      en: "<dark_green>Information"
+      fr: "<dark_green>Informations"
+    lore:
+      en:
+        - "<white><bold>Chunks used: <green>{m.used}/{m.max}"
+      fr:
+        - "<white><bold>Tronçons utilisés : <green>{m.used}/{m.max}"
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{m.guild}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:20774"
+        title:
+          en: "<dark_green>Information"
+          fr: "<dark_green>Informations"
+        lore:
+          en:
+            - "<white><bold>Chunks used: <green>{m.used}/{m.max}"
+            - "<gray>To buy guild claims,"
+            - "<gray>use /guildclaims"
+          fr:
+            - "<white><bold>Tronçons utilisés : <green>{m.used}/{m.max}"
+            - "<gray>Pour acheter des claims de guilde,"
+            - "<gray>utilisez la commande /guildclaims"
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: lands
+    states:
+      - if:
+          - pagination_at_first: lands
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: lands
+    states:
+      - if:
+          - pagination_at_last: lands
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{scope}", value: "sublands" }
+        material: RED_STAINED_GLASS_PANE
+        title:
+          en: "<dark_red>Back"
+          fr: "<dark_red>Retour"
+        click:
+          left:
+            - open_previous_menu
+  - id: create
+    positions: "35"
+    material: PLAYER_HEAD
+    head: "hdb:2336"
+    title:
+      en: "<dark_green>Create"
+      fr: "<dark_green>Créer"
+    lore:
+      en:
+        - "<green>Create a new land."
+      fr:
+        - "<green>Permet de créer un nouveau territoire."
+    click:
+      left:
+        - open_dialog: { dialog_id: create, context: { scope: "{scope}", owner: "{owner}", parent: "{parent}" } }
