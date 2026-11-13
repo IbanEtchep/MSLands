@@ -18,7 +18,24 @@ donc Warps et MSBoosts tournent sans recompilation.
 ```
 
 `artisan-core-api` vient de `repo.artisanmc.net/releases`. `artisan-guilds-plugin` se publie en local
-depuis MSGuilds (`./gradlew :artisan-guilds-plugin:publishToMavenLocal`).
+depuis MSGuilds (`./gradlew :artisan-guilds-plugin:publishToMavenLocal`) tant qu'il n'est pas sur
+repo.artisanmc.net.
+
+## Publier
+
+`net.artisanmc:artisan-lands` sur repo.artisanmc.net (`.github/workflows/release.yml`, secrets
+`ARTISAN_REPO_USERNAME` et `ARTISAN_REPO_PASSWORD`) :
+
+- chaque push sur `main` publie le snapshot (`2.0.0-SNAPSHOT`) dans `/snapshots` ;
+- un tag `v<version>` (`git tag -a v2.0.0 -m "notes"`) publie `<version>` dans `/releases` et met
+  `ArtisanLands-<version>.jar` sur une Release GitHub brouillon, à publier à la main.
+
+Pour compiler contre ArtisanLands (Warps, MSBoosts) :
+
+```kotlin
+repositories { maven("https://repo.artisanmc.net/releases") }
+dependencies { compileOnly("net.artisanmc:artisan-lands:2.0.0") }
+```
 
 ## Où sont les choses
 

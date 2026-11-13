@@ -1,7 +1,9 @@
 // ArtisanLands, the lands plugin on Artisan (successor of MSLands). The package stays
 // fr.iban.lands: Warps and MSBoosts use LandsPlugin, Land, Action, SChunk and GuildLand as they are.
-group = "com.github.IbanEtchep"
-version = "2.0.0-SNAPSHOT"
+// Published to repo.artisanmc.net as net.artisanmc:artisan-lands (snapshots from main, releases from a
+// tag v<version>: .github/workflows/release.yml). A release sets the version with -PpluginVersion.
+group = "net.artisanmc"
+version = (findProperty("pluginVersion") as String?) ?: "2.0.0-SNAPSHOT"
 
 java.sourceCompatibility = JavaVersion.VERSION_21
 
@@ -50,9 +52,35 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+java {
+    withSourcesJar()
+}
+
+// What Warps and MSBoosts compile against: the plain jar (fr.iban.lands.*), not the shaded one.
 publishing {
     publications.create<MavenPublication>("maven") {
+        artifactId = "artisan-lands"
         from(components["java"])
+        pom {
+            name.set("ArtisanLands")
+            description.set("Chunk claims for Paper, an Artisan add-on (formerly MSLands).")
+            url.set("https://github.com/artisanmc/artisan-lands")
+            scm {
+                url.set("https://github.com/artisanmc/artisan-lands")
+                connection.set("scm:git:https://github.com/artisanmc/artisan-lands.git")
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "artisanRepo"
+            val channel = if (version.toString().endsWith("SNAPSHOT")) "snapshots" else "releases"
+            url = uri("https://repo.artisanmc.net/$channel")
+            credentials {
+                username = providers.gradleProperty("artisanRepoUsername").orNull
+                password = providers.gradleProperty("artisanRepoPassword").orNull
+            }
+        }
     }
 }
 
