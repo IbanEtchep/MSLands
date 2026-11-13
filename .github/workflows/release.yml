@@ -7,7 +7,7 @@ name: Publish
 # Needs the secrets ARTISAN_REPO_USERNAME and ARTISAN_REPO_PASSWORD.
 on:
   push:
-    branches: [main, claude/project-thread-ttrd0e]  # TEMP: test run from the PR branch, removed after
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
