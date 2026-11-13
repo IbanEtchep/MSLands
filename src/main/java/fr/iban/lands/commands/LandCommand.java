@@ -15,38 +15,224 @@ import fr.iban.lands.utils.SeeClaims;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
-import revxrsal.commands.annotation.*;
-import revxrsal.commands.bukkit.annotation.CommandPermission;
+import net.artisanmc.modules.api.playercommand.CommandArgument;
+import net.artisanmc.modules.api.playercommand.PlayerCommandContext;
+import net.artisanmc.modules.api.playercommand.PlayerCommandDeclaration;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-@Command({"land", "l"})
+/**
+ * {@code /land} (alias {@code /l}), declared through Artisan's player commands: registered by
+ * {@link fr.iban.lands.menu.LandsModule}, it is the file {@code commands/land.yaml} of the module's
+ * folder, which the admin edits in the editor. Same sub-commands and permissions as with Lamp.
+ */
 public class LandCommand {
+
+    public static final String ROOT = "lands:land";
+    private static final long CREATE_COOLDOWN_MILLIS = 10_000;
+
 
     private final LandRepository landRepository;
     private final LandsPlugin plugin;
     private final boolean playerLandsEnabled;
     private final LandService landService;
     private final LandMessages messages;
+    private final CommandSupport support;
+    /** Last {@code /land create} of each player (Lamp's {@code @Cooldown(10)}). */
+    private final Map<UUID, Long> lastCreate = new ConcurrentHashMap<>();
 
     public LandCommand(LandsPlugin plugin) {
         this.plugin = plugin;
         this.landRepository = plugin.getLandRepository();
         this.landService = plugin.getLandService();
         this.messages = plugin.getMessages();
+        this.support = new CommandSupport(plugin);
         this.playerLandsEnabled = plugin.getConfig().getBoolean("players-lands-enabled");
     }
 
-    @CommandPlaceholder
+    /** The whole tree, registered once with {@code api.getPlayerCommands()}. */
+    public PlayerCommandDeclaration declaration() {
+        return PlayerCommandDeclaration.builder(ROOT)
+                .name("land")
+                .aliases("l")
+                .description(Map.of("en", "Lands", "fr", "Territoires"))
+                .executor(CommandSupport.player((p, ctx) -> onCommand(p)))
+                .child(sub("help", "List the land commands", "Lister les commandes des territoires")
+                        .executor(CommandSupport.player((p, ctx) -> help(p))).build())
+                .child(sub("menu", "Open your lands", "Ouvrir vos territoires")
+                        .executor(CommandSupport.player((p, ctx) -> menu(p))).build())
+                .child(sub("create", "Create a land", "Créer un territoire")
+                        .argument(CommandArgument.string("name").optional())
+                        .executor(CommandSupport.player((p, ctx) -> create(p, CommandSupport.string(ctx, "name"))))
+                        .build())
+                .child(sub("delete", "Delete one of your lands", "Supprimer un de vos territoires")
+                        .argument(support.land("land"))
+                        .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx, land -> delete(p, land))))
+                        .build())
+                .child(sub("claim", "Claim the chunk you stand in", "Protéger le tronçon où vous êtes")
+                        .argument(support.land("land").optional())
+                        .executor(CommandSupport.player((p, ctx) -> {
+                            if (CommandSupport.string(ctx, "land") == null) {
+                                claim(p, null);
+                            } else {
+                                withLand(p, ctx, land -> claim(p, land));
+                            }
+                        }))
+                        .build())
+                .child(sub("unclaim", "Unclaim the chunk you stand in", "Retirer la protection du tronçon où vous êtes")
+                        .executor(CommandSupport.player((p, ctx) -> unclaim(p))).build())
+                .child(sub("forceunclaim", "Unclaim the chunk you stand in, whoever owns it",
+                        "Retirer la protection du tronçon où vous êtes, quel que soit son propriétaire")
+                        .permission("lands.admin")
+                        .executor(CommandSupport.player((p, ctx) -> forceunclaim(p))).build())
+                .child(sub("claimat", "Claim a chunk from the map (clicked in the chat)",
+                        "Protéger un tronçon depuis la carte (clic dans le chat)")
+                        .argument(CommandArgument.world("world"))
+                        .argument(CommandArgument.integer("x"))
+                        .argument(CommandArgument.integer("z"))
+                        .executor(CommandSupport.player((p, ctx) -> claimat(p, ctx.get("world", World.class),
+                                CommandSupport.integer(ctx, "x", 0), CommandSupport.integer(ctx, "z", 0))))
+                        .build())
+                .child(sub("unclaimat", "Unclaim a chunk from the map (clicked in the chat)",
+                        "Retirer la protection d'un tronçon depuis la carte (clic dans le chat)")
+                        .argument(CommandArgument.world("world"))
+                        .argument(CommandArgument.integer("x"))
+                        .argument(CommandArgument.integer("z"))
+                        .executor(CommandSupport.player((p, ctx) -> unclaimat(p, ctx.get("world", World.class),
+                                CommandSupport.integer(ctx, "x", 0), CommandSupport.integer(ctx, "z", 0))))
+                        .build())
+                .child(sub("map", "Show the map of the lands around you", "Afficher la carte des territoires autour de vous")
+                        .argument(support.land("land").optional())
+                        .executor(CommandSupport.player((p, ctx) -> {
+                            if (CommandSupport.string(ctx, "land") == null) {
+                                map(p, null);
+                            } else {
+                                withLand(p, ctx, land -> map(p, land));
+                            }
+                        }))
+                        .build())
+                .child(sub("seeclaims", "Show or hide the borders of the lands", "Afficher ou masquer les bordures des territoires")
+                        .executor(CommandSupport.player((p, ctx) -> seeclaims(p))).build())
+                .child(sub("kick", "Kick a player out of your land", "Expulser un joueur de votre territoire")
+                        .argument(CommandArgument.player("player"))
+                        .executor(CommandSupport.player((p, ctx) -> kick(p, ctx.get("player", Player.class))))
+                        .build())
+                .child(sub("giveclaims", "Give some of your claims to a player", "Donner des claims à un joueur")
+                        .argument(CommandSupport.knownPlayer("player"))
+                        .argument(CommandArgument.integer("amount"))
+                        .executor(CommandSupport.player((p, ctx) -> {
+                            OfflinePlayer target = support.knownPlayer(p, ctx, "player");
+                            if (target != null) giveClaims(p, target, CommandSupport.integer(ctx, "amount", 0));
+                        }))
+                        .build())
+                .child(sub("bypass", "Ignore the protections", "Ignorer les protections")
+                        .permission("lands.bypass")
+                        .executor(CommandSupport.player((p, ctx) -> bypass(p))).build())
+                .child(admin())
+                .build();
+    }
+
+    private PlayerCommandDeclaration admin() {
+        return sub("admin", "Land administration", "Administration des territoires")
+                .permission("lands.admin")
+                .child(sub("admin.setspawn", "Set where kicked players go", "Définir où vont les joueurs expulsés")
+                        .permission("lands.admin")
+                        .executor(CommandSupport.player((p, ctx) -> setSpawnLocation(p))).build())
+                .child(sub("admin.debug", "Toggle the debug mode", "Activer ou couper le mode debug")
+                        .permission("lands.admin")
+                        .executor(CommandSupport.player((p, ctx) -> debugMode(p))).build())
+                .child(sub("admin.chunkinfo", "Show who claimed the chunk you stand in",
+                        "Afficher qui a protégé le tronçon où vous êtes")
+                        .permission("lands.admin")
+                        .executor(CommandSupport.player((p, ctx) -> chunkInfo(p))).build())
+                .child(sub("admin.setdefaultworldclaim", "Make a land cover a whole world",
+                        "Faire couvrir tout un monde par un territoire")
+                        .permission("lands.admin")
+                        .argument(CommandArgument.world("world"))
+                        .argument(support.land("land"))
+                        .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx,
+                                land -> setDefaultWorldClaim(p, ctx.get("world", World.class), land))))
+                        .build())
+                .child(sub("admin.effect", "Potion effects of a land", "Effets de potion d'un territoire")
+                        .permission("lands.admin")
+                        .child(sub("admin.effect.add", "Add a potion effect to a land", "Ajouter un effet de potion à un territoire")
+                                .permission("lands.admin")
+                                .argument(support.land("land"))
+                                .argument(CommandArgument.string("effect").suggestions(ctx -> effects()))
+                                .argument(CommandArgument.integer("amplifier").optional())
+                                .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx, land -> addEffect(p, land,
+                                        CommandSupport.string(ctx, "effect"), CommandSupport.integer(ctx, "amplifier", 0)))))
+                                .build())
+                        .child(sub("admin.effect.remove", "Remove a potion effect from a land", "Retirer un effet de potion d'un territoire")
+                                .permission("lands.admin")
+                                .argument(support.land("land"))
+                                .argument(CommandArgument.string("effect").suggestions(ctx -> effects()))
+                                .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx,
+                                        land -> removeEffect(p, land, CommandSupport.string(ctx, "effect")))))
+                                .build())
+                        .child(sub("admin.effect.list", "List the potion effects of a land", "Lister les effets de potion d'un territoire")
+                                .permission("lands.admin")
+                                .argument(support.land("land"))
+                                .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx, land -> listEffects(p, land))))
+                                .build())
+                        .build())
+                .child(sub("admin.command", "Commands run when entering a land", "Commandes lancées à l'entrée d'un territoire")
+                        .permission("lands.admin")
+                        .child(sub("admin.command.add", "Run a command when a player enters a land",
+                                "Lancer une commande quand un joueur entre dans un territoire")
+                                .permission("lands.admin")
+                                .argument(support.land("land"))
+                                .argument(CommandArgument.choice("as_console", List.of("true", "false")))
+                                .argument(CommandArgument.text("command"))
+                                .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx, land -> addCommand(p, land,
+                                        "true".equalsIgnoreCase(CommandSupport.string(ctx, "as_console")),
+                                        CommandSupport.string(ctx, "command")))))
+                                .build())
+                        .child(sub("admin.command.remove", "Remove a command of a land (ids from the list)",
+                                "Retirer une commande d'un territoire (identifiants de la liste)")
+                                .permission("lands.admin")
+                                .argument(CommandArgument.string("land_id"))
+                                .argument(CommandArgument.string("command_id"))
+                                .executor(CommandSupport.player((p, ctx) -> removeCommand(p,
+                                        CommandSupport.string(ctx, "land_id"), CommandSupport.string(ctx, "command_id"))))
+                                .build())
+                        .child(sub("admin.command.list", "List the commands of a land", "Lister les commandes d'un territoire")
+                                .permission("lands.admin")
+                                .argument(support.land("land"))
+                                .executor(CommandSupport.player((p, ctx) -> withLand(p, ctx, land -> listCommands(p, land))))
+                                .build())
+                        .build())
+                .build();
+    }
+
+    /** The potion effects, as {@code /land admin effect add} takes them. */
+    private static List<String> effects() {
+        return Registry.EFFECT.stream()
+                .map(effect -> effect.getKey().getKey())
+                .sorted()
+                .toList();
+    }
+
+    private static PlayerCommandDeclaration.Builder sub(String path, String en, String fr) {
+        return CommandSupport.sub(ROOT, path, en, fr);
+    }
+
+    private void withLand(Player player, PlayerCommandContext ctx, java.util.function.Consumer<Land> run) {
+        Land land = support.land(player, ctx, "land");
+        if (land != null) run.accept(land);
+    }
+
     public void onCommand(Player player) {
         help(player);
     }
 
-    @Subcommand("claim")
-    public void claim(Player player, @Optional Land withLand) {
+    public void claim(Player player, @Nullable Land withLand) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
             return;
@@ -67,7 +253,6 @@ public class LandCommand {
         landService.claim(player, new SChunk(player.getLocation().getChunk()), withLand);
     }
 
-    @Subcommand("unclaim")
     public void unclaim(Player player) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -77,9 +262,6 @@ public class LandCommand {
         landService.unclaim(player, new SChunk(player.getLocation().getChunk()));
     }
 
-    @Subcommand("forceunclaim")
-    @CommandPermission("lands.admin")
-    @SecretCommand
     public void forceunclaim(Player player) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -90,7 +272,6 @@ public class LandCommand {
         messages.send(player, "unclaim.forced");
     }
 
-    @Subcommand("kick")
     public void kick(Player player, Player target) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -112,16 +293,12 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("bypass")
-    @CommandPermission("lands.bypass")
     public void bypass(Player player) {
         plugin.setBypassing(player.getUniqueId(), !plugin.getBypass().contains(player.getUniqueId()));
         messages.send(player, plugin.isBypassing(player) ? "bypass.on" : "bypass.off");
     }
 
-    @Subcommand("create")
-    @Cooldown(value = 10)
-    public void create(Player player, @Optional String name) {
+    public void create(Player player, @Nullable String name) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
             return;
@@ -129,13 +306,19 @@ public class LandCommand {
 
         if (name == null) {
             messages.send(player, "create.usage");
-        } else {
-            landService.createLand(player, name, LandType.PLAYER, player.getUniqueId());
+            return;
         }
+        long now = System.currentTimeMillis();
+        Long last = lastCreate.get(player.getUniqueId());
+        if (last != null && now - last < CREATE_COOLDOWN_MILLIS) {
+            messages.send(player, "create.cooldown", "seconds", (CREATE_COOLDOWN_MILLIS - (now - last) + 999) / 1000);
+            return;
+        }
+        lastCreate.put(player.getUniqueId(), now);
+        landService.createLand(player, name, LandType.PLAYER, player.getUniqueId());
     }
 
-    @Subcommand("delete")
-    public void create(Player player, Land land) {
+    public void delete(Player player, Land land) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
 
             messages.send(player, "disabled");
@@ -149,8 +332,6 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("claimat")
-    @SecretCommand
     public void claimat(Player player, World world, int X, int Z) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
 
@@ -170,8 +351,6 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("unclaimat")
-    @SecretCommand
     public void unclaimat(Player player, World world, int X, int Z) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -200,8 +379,7 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("map")
-    public void map(Player player, @Optional Land land) {
+    public void map(Player player, @Nullable Land land) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
             return;
@@ -210,7 +388,6 @@ public class LandCommand {
         plugin.getLandMap().display(player, land);
     }
 
-    @Subcommand("seeclaims")
     public void seeclaims(Player player) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -231,7 +408,6 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("menu")
     public void menu(Player player) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
 
@@ -239,26 +415,20 @@ public class LandCommand {
             return;
         }
 
-        player.performCommand("lands");
+        plugin.getMenus().openLands(player, fr.iban.lands.menu.LandMenus.Scope.PLAYER, player.getUniqueId());
     }
 
-    @Subcommand("admin setspawn")
-    @CommandPermission("lands.admin")
     public void setSpawnLocation(Player player) {
         plugin.getConfig().set("spawn-location", player.getLocation());
         plugin.saveConfig();
         messages.send(player, "admin.setspawn");
     }
 
-    @Subcommand("admin debug")
-    @CommandPermission("lands.admin")
     public void debugMode(Player player) {
         plugin.setDebugging(player.getUniqueId(), !plugin.isInDebugMode(player.getUniqueId()));
         messages.send(player, plugin.isInDebugMode(player) ? "admin.debug.on" : "admin.debug.off");
     }
 
-    @Subcommand("admin chunkinfo")
-    @CommandPermission("lands.admin")
     public void chunkInfo(Player player) {
         Chunk chunk = player.getChunk();
         SChunk sChunk = new SChunk(chunk);
@@ -280,14 +450,11 @@ public class LandCommand {
         }
     }
 
-    @Subcommand("admin setDefaultWorldClaim")
-    @CommandPermission("lands.admin")
     public void setDefaultWorldClaim(Player player, World world, Land land) {
         landRepository.setDefaultWorldLand(world, land);
         messages.send(player, "admin.default_world_land", "world", world.getName(), "land", land.getName());
     }
 
-    @Subcommand("help")
     public void help(Player player) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
@@ -297,8 +464,7 @@ public class LandCommand {
         messages.send(player, "help.text");
     }
 
-    @Subcommand("giveclaims")
-    private void giveClaims(Player player, OfflinePlayer target, int amount) {
+    public void giveClaims(Player player, OfflinePlayer target, int amount) {
         if (!playerLandsEnabled && !player.hasPermission("lands.bypass")) {
             messages.send(player, "disabled");
             return;
@@ -308,9 +474,7 @@ public class LandCommand {
     }
 
     //land admin effect add/remove effecttype aplifier=1
-    @Subcommand("admin effect add")
-    @CommandPermission("lands.admin")
-    public void addEffect(Player player, Land land, String effectType, @Default("0") int amplifier) {
+    public void addEffect(Player player, Land land, String effectType, int amplifier) {
         NamespacedKey potionKey = NamespacedKey.fromString(effectType.toLowerCase(Locale.ROOT));
 
         if(potionKey == null || Registry.EFFECT.get(potionKey) == null) {
@@ -323,8 +487,6 @@ public class LandCommand {
         messages.send(player, "admin.effect.added");
     }
 
-    @Subcommand("admin effect remove")
-    @CommandPermission("lands.admin")
     public void removeEffect(Player player, Land land, String effectType) {
         NamespacedKey potionKey = NamespacedKey.fromString(effectType.toLowerCase(Locale.ROOT));
 
@@ -338,25 +500,17 @@ public class LandCommand {
         messages.send(player, "admin.effect.removed");
     }
 
-    @Subcommand("admin effect list")
-    @CommandPermission("lands.admin")
     public void listEffects(Player player, Land land) {
         messages.send(player, "admin.effect.list_header", "land", land.getName());
         land.getEffects().forEach(potionEffect -> messages.send(player, "admin.effect.list_line",
                 "effect", potionEffect.getType().getKey(), "amplifier", potionEffect.getAmplifier()));
     }
 
-    @Subcommand("admin command add")
-    @CommandPermission("lands.admin")
-    @Usage("/land admin command add <land> <asConsole> <command>")
     public void addCommand(Player player, Land land, boolean asConsole, String command) {
         landRepository.addCommand(land, new LandEnterCommand(command, asConsole));
         messages.send(player, "admin.command.added");
     }
 
-    @Subcommand("admin command remove")
-    @CommandPermission("lands.admin")
-    @Usage("/land admin command remove <land_id> <command_id>")
     public void removeCommand(Player player, String landIdString, String commandIdString) {
         UUID landId;
         UUID commandId;
@@ -389,9 +543,6 @@ public class LandCommand {
         messages.send(player, "admin.command.removed");
     }
 
-    @Subcommand("admin command list")
-    @CommandPermission("lands.admin")
-    @Usage("/land admin command list <land>")
     public void listCommands(Player player, Land land) {
         messages.send(player, "admin.command.list_header", "land", land.getName());
         String console = messages.text(player, "admin.command.console", "[Console]");

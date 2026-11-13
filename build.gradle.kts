@@ -40,15 +40,13 @@ dependencies {
 
     implementation("com.tcoded:FoliaLib:0.5.1")
     implementation("net.objecthunter:exp4j:0.4.8")
-    implementation("io.github.revxrsal:lamp.common:4.0.0-rc.16")
-    implementation("io.github.revxrsal:lamp.bukkit:4.0.0-rc.16")
-    implementation("io.github.revxrsal:lamp.brigadier:4.0.0-rc.16")
 
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("net.artisanmc:artisan-core-api:$artisanApiVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.1")
     testImplementation("com.h2database:h2:2.3.232")
     testImplementation("org.yaml:snakeyaml:2.3")
+    testImplementation("org.mockito:mockito-core:5.14.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -86,7 +84,6 @@ publishing {
 
 tasks.shadowJar {
     archiveFileName.set("ArtisanLands-${project.version}.jar")
-    relocate("revxrsal", "fr.iban.lands.libs.lamp")
     relocate("com.tcoded.folialib", "fr.iban.lands.libs.folialib")
     relocate("net.objecthunter.exp4j", "fr.iban.lands.libs.exp4j")
 }
@@ -119,3 +116,6 @@ tasks.withType<JavaCompile>() {
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
 }
+
+// The test mocks LandsPlugin: the plugins it hooks (Vault…) must load.
+configurations.testImplementation { extendsFrom(configurations.compileOnly.get()) }

@@ -9,7 +9,6 @@ import fr.iban.lands.commands.LandCommand;
 import fr.iban.lands.commands.LandsCommand;
 import fr.iban.lands.commands.MaxClaimsCommand;
 import fr.iban.lands.commands.MiscellaneousCommands;
-import fr.iban.lands.commands.parametertypes.LandParameterType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.guild.ArtisanGuildsDataAccess;
 import fr.iban.lands.listeners.*;
@@ -29,6 +28,7 @@ import fr.iban.lands.utils.ChatInputs;
 import fr.iban.lands.utils.LandMap;
 import fr.iban.lands.utils.SeeClaims;
 import net.artisanmc.modules.api.ArtisanAPI;
+import net.artisanmc.modules.api.playercommand.PlayerCommandDeclaration;
 import net.artisanmc.modules.api.translation.MessageBundle;
 import net.artisanmc.modules.api.translation.MessageBundleDeclaration;
 import net.milkbowl.vault.economy.Economy;
@@ -39,9 +39,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
-import revxrsal.commands.Lamp;
-import revxrsal.commands.bukkit.BukkitLamp;
-import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -132,8 +129,6 @@ public final class LandsPlugin extends JavaPlugin {
         setupEconomy();
         hookGuilds();
 
-        registerCommands();
-
         registerListeners(
                 chatInputs,
                 new BlockBreakListener(this),
@@ -164,11 +159,17 @@ public final class LandsPlugin extends JavaPlugin {
             getLogger().info("QuickShop hooked.");
         }
 
-        // The menus, their data sources and actions.
+        // The menus, their data sources and actions, and the commands: registered by the module, each
+        // command is a file of its folder (commands/land.yaml…), edited in the editor.
+        List<PlayerCommandDeclaration> commands = commands();
         try {
-            api.getModules().register(new LandsModule(this, getLogger()));
+            api.getModules().register(new LandsModule(this, commands, getLogger()));
         } catch (RuntimeException e) {
             getLogger().log(Level.WARNING, "The land menus are not available", e);
+        }
+        // Without the module, the commands still work, as declared: Artisan removes them when this plugin disables.
+        for (PlayerCommandDeclaration command : commands) {
+            if (api.getPlayerCommands().find(command.getId()) == null) api.getPlayerCommands().register(command);
         }
 
         PotionEffectTask potionEffectTask = new PotionEffectTask(this);
@@ -197,16 +198,15 @@ public final class LandsPlugin extends JavaPlugin {
         api = null;
     }
 
-    private void registerCommands() {
-        Lamp<BukkitCommandActor> lamp = BukkitLamp.builder(this)
-                .parameterTypes(builder -> builder.addParameterType(Land.class, new LandParameterType(this)))
-                .build();
-
-        lamp.register(new LandCommand(this));
-        lamp.register(new LandsCommand(this));
-        lamp.register(new GuildClaimsCommand(this));
-        lamp.register(new MaxClaimsCommand(this));
-        lamp.register(new MiscellaneousCommands());
+    /** /land, /lands, /guildclaims, /addmaxclaim, /removemaxclaim, /getmaxclaim and /sayinchat. */
+    private List<PlayerCommandDeclaration> commands() {
+        List<PlayerCommandDeclaration> commands = new ArrayList<>();
+        commands.add(new LandCommand(this).declaration());
+        commands.add(new LandsCommand(this).declaration());
+        commands.add(new GuildClaimsCommand(this).declaration());
+        commands.addAll(new MaxClaimsCommand(this).declarations());
+        commands.add(new MiscellaneousCommands().declaration());
+        return commands;
     }
 
     /**

@@ -20,17 +20,18 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import revxrsal.commands.annotation.Command;
-import revxrsal.commands.annotation.CommandPlaceholder;
-import revxrsal.commands.annotation.Single;
-import revxrsal.commands.annotation.Subcommand;
+import net.artisanmc.modules.api.playercommand.CommandArgument;
+import net.artisanmc.modules.api.playercommand.PlayerCommandDeclaration;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@Command({"guildclaims"})
+/** {@code /guildclaims}: the claim prices of a guild, and buying claims with the guild's bank. */
 public class GuildClaimsCommand {
+
+    public static final String ROOT = "lands:guildclaims";
 
     private final LandRepository landRepository;
     private final LandsPlugin plugin;
@@ -42,12 +43,26 @@ public class GuildClaimsCommand {
         this.messages = plugin.getMessages();
     }
 
-    @CommandPlaceholder
+    public PlayerCommandDeclaration declaration() {
+        return PlayerCommandDeclaration.builder(ROOT)
+                .name("guildclaims")
+                .description(Map.of("en", "Your guild's claims", "fr", "Les claims de votre guilde"))
+                .executor(CommandSupport.player((p, ctx) -> onCommand(p)))
+                .child(CommandSupport.sub(ROOT, "info", "The claim prices and your guild's claims",
+                                "Les prix des claims et les claims de votre guilde")
+                        .executor(CommandSupport.player((p, ctx) -> info(p)))
+                        .build())
+                .child(CommandSupport.sub(ROOT, "buy", "Buy claims with the guild's bank", "Acheter des claims avec la banque de la guilde")
+                        .argument(CommandArgument.integer("amount"))
+                        .executor(CommandSupport.player((p, ctx) -> buy(p, CommandSupport.integer(ctx, "amount", 0))))
+                        .build())
+                .build();
+    }
+
     public void onCommand(Player player) {
         info(player);
     }
 
-    @Subcommand("info")
     public void info(Player player) {
         AbstractGuildDataAccess guildDataAccess = plugin.getGuildDataAccess();
         UUID guildId = guildDataAccess.getGuildId(player.getUniqueId());
@@ -129,8 +144,7 @@ public class GuildClaimsCommand {
     }
 
 
-    @Subcommand("buy")
-    public void buy(Player player, @Single int amount) {
+    public void buy(Player player, int amount) {
         AbstractGuildDataAccess guildDataAccess = plugin.getGuildDataAccess();
 
         if (amount <= 0) {

@@ -44,11 +44,6 @@ public final class LandMessages {
         return bundle.get(viewer, key, map(placeholders));
     }
 
-    /** As a {@code §}-coded string, for the APIs that take one (Lamp's errors). */
-    public String legacy(CommandSender viewer, String key, Object... placeholders) {
-        return bundle.legacy(viewer, key, map(placeholders));
-    }
-
     /**
      * The raw MiniMessage of {@code key} in the viewer's language (the default one without a
      * viewer, as in the editor's preview), else {@code fallback}: for the rows of the menus.

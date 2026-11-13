@@ -1,7 +1,7 @@
 # ArtisanLands messages (MiniMessage). Each <name> is replaced by its value, as plain text.
 # A player's language file is read first, then the default language's (config.yml).
 disabled: "<red>Lands are not enabled on this server."
-player_only: "<red>Only a player can run this command."
+player_unknown: "<red>The player <player> has never played on this server."
 no_permission_here: "<red>You are not allowed to do that in this claim."
 menu:
   unavailable: "<red>This menu is not available. Tell an administrator."
@@ -46,6 +46,7 @@ limits:
   increased: "<gray>Claim limit of <dark_gray><player></dark_gray> raised by <dark_gray><amount>"
   decreased: "<gray>Claim limit of <dark_gray><player></dark_gray> lowered by <dark_gray><amount>"
   show: "<gray>Claim limit of <dark_gray><player></dark_gray>: <dark_gray><amount>"
+  invalid_amount: "<red>The number of claims must be at least 1."
 
 ban:
   self: "<red>You cannot ban yourself!"
@@ -80,6 +81,7 @@ seeclaims:
 
 create:
   usage: "<gray>/land create [name]"
+  cooldown: "<red>Wait <seconds> more seconds before creating another land."
 
 enter:
   # Action bar when changing land. <from_owner> and <to_owner>: " ☗ owner" or nothing.
