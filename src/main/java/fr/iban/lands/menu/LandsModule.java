@@ -5,6 +5,7 @@ import fr.iban.lands.enums.Action;
 import fr.iban.lands.enums.Flag;
 import fr.iban.lands.enums.LinkType;
 import net.artisanmc.modules.api.ArtisanAPI;
+import net.artisanmc.modules.api.playercommand.PlayerCommandDeclaration;
 import net.artisanmc.modules.api.ArtisanModule;
 import net.artisanmc.modules.api.action.ActionDeclaration;
 import net.artisanmc.modules.api.action.ActionHandler;
@@ -88,11 +89,14 @@ public final class LandsModule implements ArtisanModule {
     public static final String LINK = "lands:link";
     public static final String UNLINK = "lands:unlink";
 
+    /** {@code /land}, {@code /lands}…: registered from {@link #onEnable}, their files go in the module's folder. */
+    private final List<PlayerCommandDeclaration> commands;
     private final LandMenuData data;
     private final LandMenuActions actions;
     private final Logger logger;
 
-    public LandsModule(LandsPlugin plugin, Logger logger) {
+    public LandsModule(LandsPlugin plugin, List<PlayerCommandDeclaration> commands, Logger logger) {
+        this.commands = List.copyOf(commands);
         this.data = plugin.getMenus().data();
         this.actions = new LandMenuActions(plugin, plugin.getMenus());
         this.logger = logger;
@@ -111,6 +115,8 @@ public final class LandsModule implements ArtisanModule {
     @Override
     public void onEnable(ArtisanAPI api) {
         claimFolder(api);
+        // Registered from here, the commands belong to the module: their file goes in its folder.
+        commands.forEach(api.getPlayerCommands()::register);
         registerSystemFiles(api);
         registerDataSources(api);
         registerActions(api);

@@ -44,10 +44,11 @@ dependencies { compileOnly("net.artisanmc:artisan-lands:2.0.0") }
 | Messages | `plugins/Artisan/modules/lands/lang/{fr,en}.yml` (modèle : `src/main/resources/lang/`) |
 | Menus et dialogs | `plugins/Artisan/modules/lands/menus/`, `dialogs/`, éditables dans l'éditeur Artisan (modèle : `src/main/resources/artisan-system/lands/`) |
 | Data sources et actions des menus | `menu/LandMenuData`, `menu/LandMenuActions`, déclarées dans `menu/LandsModule` |
+| Commandes (`/land`, `/lands`, `/guildclaims`, `/addmaxclaim`…) | `commands/*`, déclarées à Artisan (`PlayerCommandRegistry`) par `LandsModule` : fichiers `plugins/Artisan/modules/lands/commands/*.yaml`, éditables dans l'éditeur |
 
 Une modification d'un menu livré = monter `LandsModule.SYSTEM_VERSION`. Les noms et arguments des
-data sources et actions `lands:*` sont publics (les menus d'un admin les utilisent) : on n'en renomme
-aucun.
+data sources et actions `lands:*`, et les identifiants des commandes (`lands:land.claim`…, appelables par
+`module_command`), sont publics (les menus d'un admin les utilisent) : on n'en renomme aucun.
 
 ## Passer de MSLands à ArtisanLands
 

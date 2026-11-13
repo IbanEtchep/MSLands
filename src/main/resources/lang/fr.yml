@@ -1,7 +1,7 @@
 # Messages d'ArtisanLands (MiniMessage). Les <nom> sont remplacés par leur valeur, en texte simple.
 # Le fichier de la langue d'un joueur est lu d'abord, puis celui de la langue par défaut (config.yml).
 disabled: "<red>Les territoires ne sont pas activés sur ce serveur."
-player_only: "<red>Vous devez être un joueur pour exécuter cette commande."
+player_unknown: "<red>Le joueur <player> n'a jamais joué sur le serveur."
 no_permission_here: "<red>Vous n'avez pas la permission de faire cela dans ce claim."
 menu:
   unavailable: "<red>Ce menu n'est pas disponible. Prévenez un administrateur."
@@ -46,6 +46,7 @@ limits:
   increased: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> augmenté de <dark_gray><amount>"
   decreased: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> diminué de <dark_gray><amount>"
   show: "<gray>Nombre maximum de claims de <dark_gray><player></dark_gray> : <dark_gray><amount>"
+  invalid_amount: "<red>Le nombre de claims doit valoir au moins 1."
 
 ban:
   self: "<red>Vous ne pouvez pas vous bannir vous-même !"
@@ -80,6 +81,7 @@ seeclaims:
 
 create:
   usage: "<gray>/land create [nom]"
+  cooldown: "<red>Attendez encore <seconds> s avant de créer un autre territoire."
 
 enter:
   # Barre d'action en changeant de territoire. <from_owner> et <to_owner> : « ☗ propriétaire » ou rien.
