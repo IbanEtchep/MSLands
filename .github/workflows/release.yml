@@ -7,7 +7,7 @@ name: Publish
 # Needs the secrets ARTISAN_REPO_USERNAME and ARTISAN_REPO_PASSWORD.
 on:
   push:
-    branches: [main]
+    branches: [main, claude/project-thread-ttrd0e]  # TEMP: test run from the PR branch, removed after
     tags: ["v*"]
   workflow_dispatch:
 
@@ -30,6 +30,15 @@ jobs:
           java-version: 21
           cache: gradle
       - uses: gradle/actions/setup-gradle@v5
+      # ArtisanGuilds is on no Maven repository yet: built from its main into mavenLocal, where
+      # build.gradle.kts finds it (com.github.ibanetchep:artisan-guilds-plugin:2.0.0-SNAPSHOT).
+      - uses: actions/checkout@v5
+        with:
+          repository: IbanEtchep/MSGuilds
+          path: .guilds
+      - name: ArtisanGuilds into mavenLocal
+        working-directory: .guilds
+        run: bash ./gradlew :artisan-guilds-plugin:publishToMavenLocal -x test --no-daemon
       - name: Resolve version
         id: version
         run: |
