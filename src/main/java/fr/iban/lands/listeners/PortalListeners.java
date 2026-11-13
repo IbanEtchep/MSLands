@@ -29,7 +29,7 @@ public class PortalListeners implements Listener {
 
                     if (!land.isBypassing(player, Action.BLOCK_PLACE)) {
                         event.setCancelled(true);
-                        player.sendMessage("§cLa création du portail a été annulée, celui-ci se trouvant sur un claim où vous n'êtes pas autorisé à poser des blocs.");
+                        LandsPlugin.getInstance().getMessages().send(player, "portal.cancelled");
                         return;
                     }
                 }

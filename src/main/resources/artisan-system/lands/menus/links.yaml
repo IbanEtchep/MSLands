@@ -1,0 +1,168 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Links"
+      fr: "<dark_green><bold>Liens"
+size: 36
+inputs:
+  - name: land
+    type: string
+  - name: globaltrust
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "globaltrust" } }
+  - name: trusts
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "trusts" } }
+  - name: bans
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "bans" } }
+elements:
+  - id: frame
+    positions: "0-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: globaltrust
+    positions: "10"
+    iterates: { source: globaltrust, alias: k }
+    material: PLAYER_HEAD
+    head: "hdb:2981"
+    title:
+      en: "<dark_green>Global permissions link"
+      fr: "<dark_green>Lien permissions globales"
+    lore:
+      en:
+        - "<green>The land's global permissions"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les permissions globales"
+        - "<green>du territoire soient celles d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "globaltrust" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:2981"
+        title:
+          en: "<dark_green>Global permissions link"
+          fr: "<dark_green>Lien permissions globales"
+        lore:
+          en:
+            - "<green>The land's global permissions"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{k.with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les permissions globales"
+            - "<green>du territoire soient celles d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{k.with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "globaltrust" }
+            - set_arg: { arg: refresh, value: "globaltrust" }
+  - id: trusts
+    positions: "13"
+    iterates: { source: trusts, alias: k }
+    material: PLAYER_HEAD
+    head: "hdb:41548"
+    title:
+      en: "<dark_green>Player permissions link"
+      fr: "<dark_green>Lien permissions joueurs"
+    lore:
+      en:
+        - "<green>The land's player permissions"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les permissions joueur"
+        - "<green>du territoire soient celles d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "trusts" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:41548"
+        title:
+          en: "<dark_green>Player permissions link"
+          fr: "<dark_green>Lien permissions joueurs"
+        lore:
+          en:
+            - "<green>The land's player permissions"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{k.with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les permissions joueur"
+            - "<green>du territoire soient celles d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{k.with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "trusts" }
+            - set_arg: { arg: refresh, value: "trusts" }
+  - id: bans
+    positions: "16"
+    iterates: { source: bans, alias: k }
+    material: PLAYER_HEAD
+    head: "hdb:19778"
+    title:
+      en: "<dark_green>Bans link"
+      fr: "<dark_green>Lien bannissements"
+    lore:
+      en:
+        - "<green>The land's bans"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les bannissements"
+        - "<green>du territoire soient ceux d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "bans" } }
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+        material: PLAYER_HEAD
+        head: "hdb:19778"
+        title:
+          en: "<dark_green>Bans link"
+          fr: "<dark_green>Lien bannissements"
+        lore:
+          en:
+            - "<green>The land's bans"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{k.with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les bannissements"
+            - "<green>du territoire soient ceux d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{k.with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "bans" }
+            - set_arg: { arg: refresh, value: "bans" }
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu

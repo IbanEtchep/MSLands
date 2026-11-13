@@ -1,6 +1,7 @@
 package fr.iban.lands.listeners;
 
 import fr.iban.lands.LandsPlugin;
+import fr.iban.lands.messages.LandMessages;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.enums.Flag;
 import fr.iban.lands.events.PlayerChunkClaimEvent;
@@ -49,12 +50,12 @@ public class LandListeners implements Listener {
         if (toLand.isBanned(player.getUniqueId())
                 && !plugin.isBypassing(player)
                 && !player.hasPermission("lands.bypass.ban")) {
-            player.sendMessage("§cVous ne pouvez pas entrer dans ce territoire, le propriétaire vous a banni.");
+            plugin.getMessages().send(player, "ban.enter_denied");
             event.setCancelled(true);
             return;
         }
 
-        Component enterActionbarMessage = getLandEnterActionBarMessage(fromLand, toLand);
+        Component enterActionbarMessage = getLandEnterActionBarMessage(player, fromLand, toLand);
         if(enterActionbarMessage != null) {
             player.sendActionBar(enterActionbarMessage);
         }
@@ -82,13 +83,12 @@ public class LandListeners implements Listener {
 
         if (event.getFlag() == Flag.SILENT_MOBS) {
             if (event.getLand() instanceof SubLand) {
-                player.sendMessage("§cFlag non supporté sur les sous territoires.");
+                plugin.getMessages().send(player, "flag.silent_mobs.sublands");
                 event.setCancelled(true);
                 return;
             }
 
-            AtomicInteger count = new AtomicInteger();
-            player.sendMessage("§aChangement d'état des mobs...");
+            plugin.getMessages().send(player, "flag.silent_mobs.changing");
             for (SChunk schunk : plugin.getLandRepository().getChunks(event.getLand())) {
                 schunk.getChunkAsync().thenAccept(chunk -> {
                     for (Entity entity : chunk.getEntities()) {
@@ -97,11 +97,11 @@ public class LandListeners implements Listener {
                         }
 
                         entity.setSilent(event.getNewState());
-                        count.getAndIncrement();
                     }
                 });
             }
-            player.sendMessage("§a" + count.get() + " mobs sont maintenant " + (event.getNewState() ? "silencieux" : "bruyants"));
+            // The chunks load asynchronously: MSLands counted the mobs before any was changed (always 0).
+            plugin.getMessages().send(player, event.getNewState() ? "flag.silent_mobs.silent" : "flag.silent_mobs.noisy");
         }
     }
 
@@ -116,37 +116,23 @@ public class LandListeners implements Listener {
     }
 
     @Nullable
-    private Component getLandEnterActionBarMessage(Land fromLand, Land toLand) {
-        if(toLand.hasFlag(Flag.SILENT_ENTER_QUIT) || fromLand.hasFlag(Flag.SILENT_ENTER_QUIT)) {
+    private Component getLandEnterActionBarMessage(Player player, Land fromLand, Land toLand) {
+        if (toLand.hasFlag(Flag.SILENT_ENTER_QUIT) || fromLand.hasFlag(Flag.SILENT_ENTER_QUIT)) {
             return null;
         }
+        LandMessages messages = plugin.getMessages();
+        return messages.component(player, "enter.bar",
+                "from", messages.landName(player, fromLand), "from_owner", ownerSuffix(player, fromLand),
+                "to", messages.landName(player, toLand), "to_owner", ownerSuffix(player, toLand));
+    }
 
-        Component fromName = Component.text(fromLand.getName()).color(TextColor.fromHexString("#F57C00"));
-        UUID ownerFrom = fromLand.getOwner();
-        if (ownerFrom != null) {
-            String ownerName;
-            if (fromLand instanceof GuildLand) {
-                ownerName = "Guilde - " + ((GuildLand) fromLand).getGuildName();
-            } else {
-                ownerName = Bukkit.getOfflinePlayer(ownerFrom).getName();
-            }
-            fromName = fromName.append(Component.text(" ☗ " + ownerName).color(TextColor.fromHexString("#FFA726")));
-        }
-
-        Component toName = Component.text(toLand.getName()).color(TextColor.fromHexString("#AFB42B"));
-        UUID ownerTo = toLand.getOwner();
-
-        if (ownerTo != null) {
-            String ownerName;
-            if (toLand instanceof GuildLand toGuildLand) {
-                ownerName = "Guilde - " + toGuildLand.getGuildName();
-            } else {
-                ownerName = Bukkit.getOfflinePlayer(ownerTo).getName();
-            }
-
-            toName = toName.append(Component.text(" ☗ " + ownerName).color(TextColor.fromHexString("#D4E157")));
-        }
-
-        return fromName.append(Component.text(" §8➜ ").append(toName)).decorate(TextDecoration.BOLD);
+    /** " ☗ owner", or nothing for a land without owner. */
+    private String ownerSuffix(Player player, Land land) {
+        UUID owner = land.getOwner();
+        if (owner == null) return "";
+        String name = land instanceof GuildLand guildLand
+                ? plugin.getMessages().text(player, "guild.owner", "Guilde - " + guildLand.getGuildName(), "guild", guildLand.getGuildName())
+                : Bukkit.getOfflinePlayer(owner).getName();
+        return " ☗ " + (name != null ? name : owner.toString());
     }
 }

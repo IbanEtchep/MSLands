@@ -1,7 +1,7 @@
 package fr.iban.lands.utils;
 
 import com.tcoded.folialib.wrapper.task.WrappedTask;
-import fr.iban.bukkitcore.CoreBukkitPlugin;
+import fr.iban.lands.messages.LandMessages;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.api.LandService;
@@ -45,35 +45,20 @@ public class AreaSelector {
     }
 
     public void startSelecting() {
-        player.sendMessage(getHelpText());
-        CoreBukkitPlugin core = CoreBukkitPlugin.getInstance();
-        core.getTextInputs().put(player.getUniqueId(), component -> {
-            String text = ChatUtils.toPlainText(component);
-
+        LandMessages messages = plugin.getMessages();
+        messages.send(player, "selection.help");
+        if (player.hasPermission("lands.admin")) messages.send(player, "selection.help_admin");
+        plugin.getChatInputs().await(player, text -> {
             if (text.equalsIgnoreCase("pos1")) {
                 cancelTask();
                 pos1 = player.getLocation();
-                player.sendMessage("§a§lPosition 1 définie.");
-
-                Cuboid cuboid = getCuboid();
-                if (cuboid != null) {
-                    player.sendMessage(
-                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
-                    showParticules(cuboid);
-                }
-
+                messages.send(player, "selection.pos1");
+                showSize();
             } else if (text.equalsIgnoreCase("pos2")) {
                 cancelTask();
                 pos2 = player.getLocation();
-                player.sendMessage("§a§lPosition 2 définie.");
-
-                Cuboid cuboid = getCuboid();
-                if (cuboid != null) {
-                    player.sendMessage(
-                            "§a§lVotre selection contient " + cuboid.getChunks().size() + " tronçons.");
-                    showParticules(cuboid);
-                }
-
+                messages.send(player, "selection.pos2");
+                showSize();
             } else if (text.equalsIgnoreCase("claim")) {
                 Cuboid cuboid = getCuboid();
                 verif(cuboid, true).thenAcceptAsync(valid -> {
@@ -85,86 +70,45 @@ public class AreaSelector {
                 Cuboid cuboid = getCuboid();
                 verif(cuboid, false).thenAcceptAsync(valid -> {
                     if (valid) {
-                        for (SChunk chunk : Objects.requireNonNull(getCuboid()).getSChunks()) {
-                            landService.unclaim(chunk);
+                        for (SChunk chunk : Objects.requireNonNull(cuboid).getSChunks()) {
+                            // Only this land's chunks: the check allowed no other.
+                            if (landRepository.getLandAt(chunk).equals(land)) landService.unclaim(chunk);
                         }
-
-                        player.sendMessage("§aLa selection a été unclaim avec succès.");
+                        messages.send(player, "selection.unclaimed");
                     }
                 });
-            } else if (player.hasPermission("lands.admin")
-                    && text.equalsIgnoreCase("forceunclaim")) {
+            } else if (player.hasPermission("lands.admin") && text.equalsIgnoreCase("forceunclaim")) {
                 if (arePosSet()) {
-                    for (Chunk chunk : Objects.requireNonNull(getCuboid()).getChunks()) {
+                    for (SChunk chunk : Objects.requireNonNull(getCuboid()).getSChunks()) {
                         landService.unclaim(chunk);
                     }
-                    player.sendMessage("§a§lLa selection a été unclaim avec succès.");
+                    messages.send(player, "selection.unclaimed");
                 } else {
-                    player.sendMessage("§c§lIl faut définir les deux positions !");
+                    messages.send(player, "selection.both_missing");
                 }
-            } else if (text.startsWith("quit")) {
-                quitCallback.run();
-                core.getTextInputs().remove(player.getUniqueId());
+            } else if (text.toLowerCase(java.util.Locale.ROOT).startsWith("quit")) {
+                plugin.getChatInputs().cancel(player);
                 cancelTask();
+                quitCallback.run();
             } else {
-                player.sendMessage("§c§lLe texte que vous avez saisi est invalide.");
+                messages.send(player, "selection.invalid");
                 startSelecting();
             }
         });
+    }
+
+    private void showSize() {
+        Cuboid cuboid = getCuboid();
+        if (cuboid != null) {
+            plugin.getMessages().send(player, "selection.contains", "count", cuboid.getSChunks().size());
+            showParticules(cuboid);
+        }
     }
 
     private void cancelTask() {
         if (particleTask != null) {
             particleTask.cancel();
         }
-    }
-
-    private Component getHelpText() {
-        Component pos1 =
-                Component.text("§6§lpos1")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour définir la position 1")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat pos1"));
-        Component pos2 =
-                Component.text("§6§lpos2")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour définir la position 2")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat pos2"));
-        Component claim =
-                Component.text("§a§lclaim")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour claim la sélection")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat claim"));
-        Component unclaim =
-                Component.text("§c§lunclaim")
-                        .hoverEvent(HoverEvent.showText(Component.text("§aCliquez pour unclaim la sélection")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat unclaim"));
-        Component forceunclaim =
-                Component.text("§c§lforceunclaim")
-                        .hoverEvent(
-                                HoverEvent.showText(Component.text("§aCliquez TOUS les chunks de la sélection.")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat forceunclaim"));
-        Component quit =
-                Component.text("§c§lquitter")
-                        .hoverEvent(
-                                HoverEvent.showText(Component.text("§aCliquez pour quitter le mode sélection")))
-                        .clickEvent(ClickEvent.runCommand("/sayinchat quit"));
-
-        Component helpText =
-                Component.text(
-                                "§e§lLes mots clés pour la création d'une sélection sont (hover-clic possible) : ")
-                        .append(pos1)
-                        .append(Component.text(" §e§l, "))
-                        .append(pos2)
-                        .append(Component.text(" §e§l, "))
-                        .append(claim)
-                        .append(Component.text(" §e§l, "))
-                        .append(unclaim)
-                        .append(Component.text(" §e§let "));
-
-        if (player.hasPermission("lands.admin")) {
-            helpText = helpText.append(forceunclaim).append(Component.text(" §e§l, "));
-        }
-
-        helpText = helpText.append(quit).append(Component.text("."));
-        return helpText;
     }
 
     private boolean arePosSet() {
@@ -188,20 +132,21 @@ public class AreaSelector {
     }
 
     private CompletableFuture<Boolean> verif(Cuboid cuboid, boolean claim) {
-        player.sendMessage("§a§lVérification de la sélection...");
+        plugin.getMessages().send(player, "selection.verifying");
         return CompletableFuture.supplyAsync(() -> {
             if (cuboid == null) {
                 if (pos1 == null) {
-                    player.sendMessage("§c§lLa position 1 n'a pas encore été définie !");
+                    plugin.getMessages().send(player, "selection.pos1_missing");
                 } else {
-                    player.sendMessage("§c§lLa position 2 n'a pas encore été définie !");
+                    plugin.getMessages().send(player, "selection.pos2_missing");
                 }
                 return false;
             }
             int unclaimCount = 0;
             int claimCount = 0;
             if (cuboid.getSizeX() > 3000 || cuboid.getSizeZ() > 3000) {
-                player.sendMessage("§c§lLa selection est trop grande !");
+                plugin.getMessages().send(player, "selection.too_big");
+                return false;
             }
             for (SChunk chunk : cuboid.getSChunks()) {
                 Land chunkLand = landRepository.getLandAt(chunk);
@@ -209,7 +154,7 @@ public class AreaSelector {
 
                 if (!chunkLand.equals(wilderness)) {
                     if (!landRepository.getLandAt(chunk).equals(land)) {
-                        player.sendMessage("§c§lLa selection contient des tronçons qui ne sont pas vides et n'appartiennent pas au territoire " + land.getName() + ".");
+                        plugin.getMessages().send(player, "selection.foreign_chunks", "land", land.getName());
                         return false;
                     } else {
                         unclaimCount++;
@@ -220,19 +165,19 @@ public class AreaSelector {
             }
             if (claim) {
                 if (claimCount == 0) {
-                    player.sendMessage("§c§lIl n'y a pas de tronçons à claim dans la selection.");
+                    plugin.getMessages().send(player, "selection.nothing_to_claim");
                     return false;
                 }
 
                 int remaining = landRepository.getRemainingChunkCount(player.getUniqueId());
                 if (claimCount > remaining) {
-                    player.sendMessage("§c§lVous essayez de claim " + claimCount + " tronçons alors qu'il ne vous en reste que " + remaining + " de libre.");
+                    plugin.getMessages().send(player, "selection.too_many", "count", claimCount, "remaining", remaining);
                     return false;
                 }
 
             } else {
                 if (unclaimCount == 0) {
-                    player.sendMessage("§c§lIl n'y a pas de tronçons à unclaim dans la selection.");
+                    plugin.getMessages().send(player, "selection.nothing_to_unclaim");
                     return false;
                 }
             }

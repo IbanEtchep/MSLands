@@ -32,8 +32,8 @@ public class GuildLand extends Land {
     public boolean isBypassing(Player player, Action action) {
         UUID uuid = player.getUniqueId();
         AbstractGuildDataAccess guildDataAccess = LandsPlugin.getInstance().getGuildDataAccess();
-        if (guildDataAccess.isGuildLeader(uuid, guildId)
-                || (guildDataAccess.isGuildMember(uuid, guildId) && getGuildTrust().hasPermission(action))) {
+        if (guildDataAccess != null && guildDataAccess.isEnabled() && guildDataAccess.isGuildLeader(uuid, guildId)
+                || (guildDataAccess != null && guildDataAccess.isEnabled() && guildDataAccess.isGuildMember(uuid, guildId) && getGuildTrust().hasPermission(action))) {
             return true;
         }
 
@@ -46,16 +46,18 @@ public class GuildLand extends Land {
 
     public UUID getGuildOwner() {
         AbstractGuildDataAccess guildDataAccess = LandsPlugin.getInstance().getGuildDataAccess();
-        return guildDataAccess.getGuildLeader(guildId);
+        return guildDataAccess != null ? guildDataAccess.getGuildLeader(guildId) : null;
     }
 
+    /** The guild's name, its id while ArtisanGuilds is not there. */
     public String getGuildName() {
         AbstractGuildDataAccess guildDataAccess = LandsPlugin.getInstance().getGuildDataAccess();
-        return guildDataAccess.getGuildName(guildId);
+        String name = guildDataAccess != null ? guildDataAccess.getGuildName(guildId) : null;
+        return name != null ? name : guildId.toString();
     }
 
     public boolean isGuildMember(UUID uuid) {
         AbstractGuildDataAccess guildDataAccess = LandsPlugin.getInstance().getGuildDataAccess();
-        return guildDataAccess.isGuildMember(uuid, guildId);
+        return guildDataAccess != null && guildDataAccess.isGuildMember(uuid, guildId);
     }
 }

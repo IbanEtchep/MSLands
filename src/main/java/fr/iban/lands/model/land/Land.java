@@ -6,7 +6,7 @@ import fr.iban.lands.enums.Flag;
 import fr.iban.lands.enums.LandType;
 import fr.iban.lands.enums.LinkType;
 import fr.iban.lands.model.Trust;
-import net.kyori.adventure.text.Component;
+import fr.iban.lands.messages.LandMessages;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -17,6 +17,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class Land {
+
+    /** The wilderness: chunks nobody claimed, in a world without a default land. */
+    public static final UUID WILDERNESS_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     protected UUID id;
     protected String name;
@@ -124,38 +127,22 @@ public abstract class Land {
     public boolean isBypassing(Player player, Action action) {
         UUID uuid = player.getUniqueId();
         LandsPlugin plugin = LandsPlugin.getInstance();
-        boolean bypass =
-                getGlobalTrust().hasPermission(action)
-                        || isTrusted(uuid, action)
-                        || plugin.isBypassing(player)
-                        || (plugin.isGuildsHookEnabled()
-                        && getOwner() != null
-                        && getGuildTrust().hasPermission(action)
-                        && plugin.getGuildDataAccess().areInSameGuild(getOwner(), player.getUniqueId()));
+        boolean global = getGlobalTrust().hasPermission(action);
+        boolean self = isTrusted(uuid, action);
+        boolean guild = plugin.isGuildsHookEnabled()
+                && getOwner() != null
+                && getGuildTrust().hasPermission(action)
+                && plugin.getGuildDataAccess().areInSameGuild(getOwner(), uuid);
+        boolean bypassing = plugin.isBypassing(player);
+        boolean bypass = global || self || bypassing || guild;
 
-        if ((!bypass) && !(this instanceof SystemLand)) {
-            player.sendActionBar(
-                    Component.text("§cVous n'avez pas la permission de faire cela dans ce claim."));
+        LandMessages messages = plugin.getMessages();
+        if (!bypass && !(this instanceof SystemLand) && messages != null) {
+            messages.actionBar(player, "no_permission_here");
         }
-        if (plugin.isInDebugMode(player)) {
-            player.sendMessage(
-                    action.toString()
-                            + " : \n"
-                            + " globalTrust: "
-                            + getGlobalTrust().hasPermission(action)
-                            + "\n"
-                            + " selfTrust: "
-                            + isTrusted(uuid, action)
-                            + "\n"
-                            + " guildTrust: "
-                            + (plugin.isGuildsHookEnabled()
-                            && getOwner() != null
-                            && getGuildTrust().hasPermission(action)
-                            && plugin.getGuildDataAccess().areInSameGuild(getOwner(), player.getUniqueId()))
-                            + "\n"
-                            + " bypass: "
-                            + plugin.isBypassing(player)
-                            + "\n");
+        if (plugin.isInDebugMode(player) && messages != null) {
+            messages.send(player, "admin.debug.detail", "action", action.name(), "global", global, "self", self,
+                    "guild", guild, "bypass", bypassing);
         }
         return bypass;
     }
@@ -227,7 +214,7 @@ public abstract class Land {
         return subLands.values().stream()
                 .filter(subland -> subland.getCuboid() != null
                         && subland.getCuboid().contains(loc)
-                        && subland.getServer().equals(LandsPlugin.getInstance().getServerName()))
+                        && LandsPlugin.getInstance().getServerName().equals(subland.getServer()))
                 .findFirst()
                 .orElse(null);
     }

@@ -1,9 +1,29 @@
-name: MSLands
+name: ArtisanLands
 version: ${project_version}
 main: fr.iban.lands.LandsPlugin
-api-version: 1.21
+api-version: '1.21'
 authors: [ Iban ]
-description: Plugin de protections
-depend: [ Core, packetevents ]
-softdepend: [ QuickShop , HeadDatabase, ArtisanGuilds, MSGuilds, Vault ]
+description: Lands (claims), their permissions, flags and bans, with Artisan menus and messages.
 folia-supported: true
+# Former name: Warps (depend: [MSLands]) and MSBoosts keep resolving to this plugin.
+provides: [ MSLands ]
+# A Bukkit plugin, not a Paper plugin, like ArtisanConversations: Warps and MSBoosts (Bukkit
+# plugins) see its classes, and plugin reloaders can reload it.
+depend: [ Artisan, packetevents ]
+# Core: only for the one-time import of MSLands' tables from its database, and the delay of its
+# teleports (INSTANT_TELEPORT flag).
+softdepend: [ ArtisanGuilds, QuickShop-Hikari, HeadDatabase, Vault, Core ]
+
+permissions:
+  lands.admin:
+    description: System lands, admin commands, any player's lands.
+    default: op
+  lands.bypass:
+    description: Act in every land as if trusted (/land bypass), lands disabled or not.
+    default: op
+  lands.bypass.ban:
+    description: Enter lands that banned you.
+    default: op
+  lands.sublands:
+    description: Create sub-lands inside a land.
+    default: op

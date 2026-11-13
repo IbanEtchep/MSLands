@@ -1,0 +1,89 @@
+schema: menu/v1
+title:
+  - kind: plain
+    value:
+      en: "<dark_green><bold>Bans"
+      fr: "<dark_green><bold>Bannissements"
+size: 36
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  - name: bans
+    type: list
+    source: { ref: "lands:bans", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-9,17-18,26-35"
+    material: GREEN_STAINED_GLASS_PANE
+    title: " "
+  - id: bans
+    positions: "10-16,19-25"
+    iterates: { source: bans, alias: b }
+    material: PLAYER_HEAD
+    head: "playerhead:{b.name}"
+    title: "<dark_red><bold>{b.name}"
+    lore:
+      en:
+        - "<green>Click to unban."
+      fr:
+        - "<green>Cliquez pour débannir."
+    click:
+      left:
+        - open_menu: { menu_id: unban_confirm, context: { land: "{land}", target: "{b.id}", target_name: "{b.name}" } }
+  - id: previous
+    positions: "30"
+    material: ARROW
+    title:
+      en: "<yellow>Previous"
+      fr: "<yellow>Précédent"
+    click:
+      left:
+        - pagination_prev: bans
+    states:
+      - if:
+          - pagination_at_first: bans
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: next
+    positions: "32"
+    material: ARROW
+    title:
+      en: "<yellow>Next"
+      fr: "<yellow>Suivant"
+    click:
+      left:
+        - pagination_next: bans
+    states:
+      - if:
+          - pagination_at_last: bans
+        material: GREEN_STAINED_GLASS_PANE
+        title: " "
+  - id: back
+    positions: "31"
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Back"
+      fr: "<dark_red>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: add
+    positions: "35"
+    iterates: { source: info, alias: l }
+    material: PLAYER_HEAD
+    head: "hdb:2336"
+    title:
+      en: "<dark_green>Add"
+      fr: "<dark_green>Ajouter"
+    lore:
+      en:
+        - "<green>Ban a player from this land."
+      fr:
+        - "<green>Permet de bannir un joueur du territoire."
+    click:
+      left:
+        - open_dialog: { dialog_id: ban_add, context: { land: "{land}" } }

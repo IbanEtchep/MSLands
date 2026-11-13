@@ -1,0 +1,74 @@
+schema: menu/v1
+# Opened with land and from: "menu" (from the list, which it goes back to) or "command" (/land delete).
+title:
+  - kind: plain
+    value:
+      en: "<red>Delete this land?"
+      fr: "<red>Confirmation de suppression"
+size: 27
+inputs:
+  - name: land
+    type: string
+  - name: from
+    type: string
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  - id: frame
+    positions: "0-26"
+    material: GRAY_STAINED_GLASS_PANE
+    title: " "
+  - id: land
+    positions: "13"
+    iterates: { source: info, alias: l }
+    material: TNT
+    title: "<gold>{l.name}"
+    lore:
+      en:
+        - "<yellow>Delete the land {l.name}?"
+        - "<red>Its chunks, permissions and bans are lost."
+      fr:
+        - "<yellow>Voulez-vous supprimer le territoire {l.name} ?"
+        - "<red>Ses tronçons, permissions et bannissements sont perdus."
+  - id: confirm
+    positions: "11"
+    iterates: { source: info, alias: l }
+    material: LIME_CONCRETE
+    title:
+      en: "<green>Delete"
+      fr: "<green>Supprimer"
+    click:
+      left:
+        - lands:delete: { land: "{land}" }
+        - close_menu
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{from}", value: "menu" }
+        material: LIME_CONCRETE
+        title:
+          en: "<green>Delete"
+          fr: "<green>Supprimer"
+        click:
+          left:
+            - lands:delete: { land: "{land}" }
+            - open_previous_menu
+  - id: cancel
+    positions: "15"
+    material: RED_CONCRETE
+    title:
+      en: "<red>Cancel"
+      fr: "<red>Annuler"
+    click:
+      left:
+        - close_menu
+    states:
+      - if:
+          - placeholder_equals: { placeholder: "{from}", value: "menu" }
+        material: RED_CONCRETE
+        title:
+          en: "<red>Cancel"
+          fr: "<red>Annuler"
+        click:
+          left:
+            - open_previous_menu

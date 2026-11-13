@@ -9,7 +9,6 @@ import fr.iban.lands.enums.LinkType;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.model.SChunk;
 import fr.iban.lands.model.land.*;
-import fr.iban.lands.storage.SqlStorage;
 import fr.iban.lands.storage.Storage;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -25,7 +24,7 @@ import java.util.logging.Logger;
 
 public class LandRepositoryImpl implements LandRepository {
 
-    private final UUID WILDERNESS_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final UUID WILDERNESS_ID = Land.WILDERNESS_ID;
 
     private final LandsPlugin plugin;
     private final Storage storage;
@@ -35,15 +34,16 @@ public class LandRepositoryImpl implements LandRepository {
     private final Map<String, Land> worldsDefaultLands = new ConcurrentHashMap<>();
     private SystemLand wilderness = new SystemLand(WILDERNESS_ID, "Zone sauvage");
 
-    public LandRepositoryImpl(LandsPlugin plugin) {
+    /** Reads every land and this server's chunks before returning: a failure throws, the plugin then stops. */
+    public LandRepositoryImpl(LandsPlugin plugin, Storage storage) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
-        this.storage = new SqlStorage(logger);
+        this.storage = storage;
         loadLands();
     }
 
     private void loadLands() {
-        plugin.runAsyncQueued(() -> {
+        {
             final long start = System.currentTimeMillis();
             logger.info("Loading lands...");
             lands.putAll(storage.getLands());
@@ -79,7 +79,10 @@ public class LandRepositoryImpl implements LandRepository {
 
 
             logger.info("Loading chunks...");
-            storage.getChunks().forEach((chunk, landId) -> chunks.put(chunk, lands.get(landId)));
+            storage.getChunks().forEach((chunk, landId) -> {
+                Land land = lands.get(landId);
+                if (land != null) chunks.put(chunk, land);
+            });
 
             logger.info("Loading worlds default lands...");
             storage.getWorldsDefaultLands().forEach((world, landId) -> {
@@ -95,13 +98,12 @@ public class LandRepositoryImpl implements LandRepository {
 
             logger.info(String.format("Loaded %d lands and %d chunks in %dms", lands.size(), chunks.size(), System.currentTimeMillis() - start));
 
-            Land wilderness = storage.getLand(WILDERNESS_ID);
-            if (wilderness == null) {
-                storage.addLand(this.wilderness);
+            if (lands.get(WILDERNESS_ID) instanceof SystemLand loaded) {
+                this.wilderness = loaded;
             } else {
-                this.wilderness = (SystemLand) wilderness;
+                storage.addLand(this.wilderness);
             }
-        });
+        }
     }
 
     @Override

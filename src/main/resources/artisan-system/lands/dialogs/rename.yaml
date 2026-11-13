@@ -1,0 +1,31 @@
+schema: dialog/v1
+# Opened by lands:settings with land and current (its name).
+title:
+  en: "Rename the land"
+  fr: "Renommer le territoire"
+body:
+  - type: text
+    text:
+      en: "<gray>Current name: <white>{current}"
+      fr: "<gray>Nom actuel : <white>{current}"
+inputs:
+  - id: name
+    type: text
+    label:
+      en: "New name (16 characters at most, no spaces)"
+      fr: "Nouveau nom (16 caractères au plus, sans espace)"
+    max_length: 16
+buttons:
+  - id: rename
+    label:
+      en: "<green>Rename"
+      fr: "<green>Renommer"
+    actions:
+      - lands:rename: { land: "{land}", name: "{name}" }
+      - open_previous_menu
+  - id: cancel
+    label:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    actions:
+      - open_previous_menu

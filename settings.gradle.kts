@@ -1,1 +1,1 @@
-rootProject.name = "MSLands"
+rootProject.name = "ArtisanLands"
