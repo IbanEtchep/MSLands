@@ -20,6 +20,7 @@ repositories {
     mavenLocal()
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
     maven { url = uri("https://repo.artisanmc.net/releases") }
+    maven { url = uri("https://repo.artisanmc.net/snapshots") }
     maven { url = uri("https://repo.codemc.io/repository/maven-public/") }
     maven { url = uri("https://jitpack.io/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
@@ -30,9 +31,8 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     // Artisan is required and provides its API at runtime: never shaded.
     compileOnly("net.artisanmc:artisan-core-api:$artisanApiVersion")
-    // ArtisanGuilds is not published remotely yet:
-    //   cd <MSGuilds> && ./gradlew :artisan-guilds-plugin:publishToMavenLocal
-    compileOnly("com.github.ibanetchep:artisan-guilds-plugin:2.0.0-SNAPSHOT")
+    // ArtisanGuilds (optional at runtime: guild lands), from repo.artisanmc.net.
+    compileOnly("net.artisanmc:artisan-guilds:2.0.0-SNAPSHOT")
     compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
     compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1") { isTransitive = false }

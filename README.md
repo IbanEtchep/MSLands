@@ -17,9 +17,7 @@ donc Warps et MSBoosts tournent sans recompilation.
 ./gradlew build   # tests + build/libs/ArtisanLands-<version>.jar
 ```
 
-`artisan-core-api` vient de `repo.artisanmc.net/releases`. `artisan-guilds-plugin` se publie en local
-depuis MSGuilds (`./gradlew :artisan-guilds-plugin:publishToMavenLocal`) tant qu'il n'est pas sur
-repo.artisanmc.net.
+`artisan-core-api` et `artisan-guilds` viennent de repo.artisanmc.net.
 
 ## Publier
 
