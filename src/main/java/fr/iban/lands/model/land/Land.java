@@ -24,7 +24,7 @@ public abstract class Land {
     protected UUID id;
     protected String name;
     protected Trust globalTrust = new Trust();
-    private final Trust guildTrust = new Trust();
+    private Trust guildTrust = new Trust();
     protected Map<UUID, Trust> trusts = new HashMap<>();
     protected Set<PotionEffect> effects = new HashSet<>();
     protected Set<LandEnterCommand> enterCommands = new HashSet<>();
@@ -40,6 +40,25 @@ public abstract class Land {
     }
 
     public abstract @Nullable UUID getOwner();
+
+    /**
+     * Takes what {@code fresh} (the same land, read again from the database after another server
+     * changed it) holds: name, trusts, flags, bans, effects and enter commands. The collections are
+     * swapped, never edited, so a thread reading the old ones meanwhile sees a whole state. This
+     * instance stays the one Warps, MSBoosts and the chunks hold; links and sub-lands are the
+     * repository's.
+     */
+    public void refreshFrom(Land fresh) {
+        this.name = fresh.name;
+        this.globalTrust = fresh.globalTrust;
+        this.guildTrust = fresh.guildTrust;
+        this.trusts = fresh.trusts;
+        this.effects = fresh.effects;
+        this.enterCommands = fresh.enterCommands;
+        this.flags = fresh.flags;
+        this.bans = fresh.bans;
+        this.createdAt = fresh.createdAt;
+    }
 
     public abstract LandType getType();
 

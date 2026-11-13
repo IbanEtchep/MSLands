@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,8 +50,9 @@ public final class LandMenuData {
     private final LandMessages messages;
     /** Chunks used and allowed, per owner (player or guild), as last read from the database. */
     private final Map<UUID, Limits> limits = new ConcurrentHashMap<>();
+    private final Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
 
-    record Limits(int used, int max, long readAt) {}
+    public record Limits(int used, int max, long readAt) {}
 
     public LandMenuData(LandsPlugin plugin) {
         this.plugin = plugin;
@@ -189,12 +191,24 @@ public final class LandMenuData {
         UUID owner = uuid(param(params, "owner"));
         if (scope != LandMenus.Scope.PLAYER && scope != LandMenus.Scope.GUILD) return List.of();
         if (!canOpen(viewer, scope, owner, null)) return List.of();
-        Limits cached = limits.get(owner);
-        if (cached == null || System.currentTimeMillis() - cached.readAt() > 10_000) refreshLimits(owner, null);
+        Limits cached = cachedLimits(owner);
         row.put("used", cached == null ? "…" : String.valueOf(cached.used()));
         row.put("max", cached == null ? "…" : String.valueOf(cached.max()));
         row.put("guild", scope == LandMenus.Scope.GUILD);
         return List.of(row);
+    }
+
+    /**
+     * {@code owner}'s chunk counts as last read, null before the first read: older than 10 seconds,
+     * they are read again in the background. Never reads the database on the calling thread.
+     */
+    public @Nullable Limits cachedLimits(UUID owner) {
+        Limits cached = limits.get(owner);
+        // One read at a time per owner: a scoreboard asks at every refresh.
+        if ((cached == null || System.currentTimeMillis() - cached.readAt() > 10_000) && refreshing.add(owner)) {
+            refreshLimits(owner, () -> refreshing.remove(owner));
+        }
+        return cached;
     }
 
     /** Reads {@code owner}'s chunk counts on the database thread, then runs {@code then} (any thread). */

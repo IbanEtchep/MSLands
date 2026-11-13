@@ -16,6 +16,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,30 @@ public class LandRepositoryImpl implements LandRepository {
     private final Map<SChunk, Land> chunks = new ConcurrentHashMap<>();
     private final Map<String, Land> worldsDefaultLands = new ConcurrentHashMap<>();
     private SystemLand wilderness = new SystemLand(WILDERNESS_ID, "Zone sauvage");
+    /** Told once a change is in the database: {@link LandSync} tells the other servers. */
+    private volatile LandChanges changes = LandChanges.NONE;
+
+    /** What this server changed, once saved. Called on the database thread. */
+    public interface LandChanges {
+        LandChanges NONE = new LandChanges() {
+            @Override
+            public void landChanged(UUID id) {
+            }
+
+            @Override
+            public void worldsChanged() {
+            }
+        };
+
+        /** {@code id} was created, changed or deleted. */
+        void landChanged(UUID id);
+
+        /** The lands covering whole worlds changed. */
+        void worldsChanged();
+    }
+
+    /** What the database holds of one land, read for another server's change. */
+    public record Fresh(UUID id, @Nullable Land land, @Nullable UUID superLandId, Map<LinkType, UUID> links) {}
 
     /** Reads every land and this server's chunks before returning: a failure throws, the plugin then stops. */
     public LandRepositoryImpl(LandsPlugin plugin, Storage storage) {
@@ -114,23 +139,28 @@ public class LandRepositoryImpl implements LandRepository {
     @Override
     public void addLand(Land land) {
         lands.put(land.getId(), land);
-        plugin.runAsyncQueued(() -> storage.addLand(land));
+        save(land, () -> storage.addLand(land));
     }
 
     @Override
     public void updateLand(Land land) {
-        plugin.runAsyncQueued(() -> storage.updateLand(land));
+        save(land, () -> storage.updateLand(land));
     }
 
     @Override
     public void deleteLand(Land land) {
-        getChunks(land).forEach(chunks::remove);
-
         if (land.hasSubLand()) {
             for (SubLand subland : land.getSubLands().values()) {
                 deleteLand(subland);
             }
         }
+        forget(land);
+        save(land, () -> storage.deleteLand(land));
+    }
+
+    /** {@code land} out of memory: its chunks, its place in its parent and the worlds it covers. */
+    private void forget(Land land) {
+        getChunks(land).forEach(chunks::remove);
 
         if (land instanceof SubLand subLand) {
             Land superLand = subLand.getSuperLand();
@@ -140,28 +170,99 @@ public class LandRepositoryImpl implements LandRepository {
         worldsDefaultLands.entrySet().removeIf(entry -> entry.getValue().equals(land));
 
         lands.remove(land.getId());
-        plugin.runAsyncQueued(() -> storage.deleteLand(land));
     }
 
+    /** Reads the land again and applies it, on the calling thread: {@link #read} then {@link #apply}. */
     @Override
     public void reloadLand(UUID id) {
-        Land updatedLand = storage.getLand(id);
-        Land cachedLand = getLandById(id).orElse(null);
+        apply(read(id));
+    }
 
-        // Invalidate the cache for the old land
-        if (cachedLand != null) {
-            if (updatedLand == null) { // Land has been deleted
-                getChunks(cachedLand).forEach(chunks::remove);
-                lands.remove(cachedLand.getId());
-            } else { // Land has been updated
-                getChunks(cachedLand).forEach(schunk -> chunks.put(schunk, updatedLand));
+    public void setChanges(LandChanges changes) {
+        this.changes = changes;
+    }
+
+    /** {@code write} on the database thread, then the other servers told about {@code land}. */
+    private void save(Land land, Runnable write) {
+        UUID id = land.getId();
+        plugin.runAsyncQueued(() -> {
+            write.run();
+            changes.landChanged(id);
+        });
+    }
+
+    /** One land as the database holds it (database thread). */
+    public Fresh read(UUID id) {
+        Land land = storage.getLand(id);
+        if (land == null) return new Fresh(id, null, null, Map.of());
+        return new Fresh(id, land, land instanceof SubLand ? storage.getSuperLandId(id) : null, storage.getLinks(id));
+    }
+
+    /**
+     * Another server's change to one land, in memory here. A known land keeps its instance (what
+     * the chunks, Warps and MSBoosts hold) and takes the new state; a new one is added; a deleted
+     * one is forgotten with its sub-lands. Its parent and links are set again from the database.
+     */
+    public void apply(Fresh fresh) {
+        Land known = lands.get(fresh.id());
+        if (fresh.land() == null) {
+            if (known != null) forgetWithSubLands(known);
+            return;
+        }
+        Land land;
+        if (known != null && known.getClass() == fresh.land().getClass()
+                && Objects.equals(known.getOwner(), fresh.land().getOwner())) {
+            known.refreshFrom(fresh.land());
+            land = known;
+        } else {
+            Land replacement = fresh.land();
+            land = replacement;
+            if (known != null) {
+                // Another owner: a new instance, which takes over the old one's chunks and sub-lands.
+                replacement.setSubLands(known.getSubLands());
+                getChunks(known).forEach(chunk -> chunks.put(chunk, replacement));
+                worldsDefaultLands.replaceAll((world, l) -> l == known ? replacement : l);
+                if (known instanceof SubLand sub && sub.getSuperLand() != null) {
+                    sub.getSuperLand().getSubLands().remove(known.getId());
+                }
+            }
+            lands.put(land.getId(), land);
+            if (WILDERNESS_ID.equals(land.getId()) && land instanceof SystemLand system) wilderness = system;
+        }
+        if (land instanceof SubLand sub && fresh.superLandId() != null) {
+            Land superLand = lands.get(fresh.superLandId());
+            if (superLand != null) {
+                sub.setSuperLand(superLand);
+                superLand.getSubLands().put(sub.getId(), sub);
             }
         }
+        Map<LinkType, Land> links = new EnumMap<>(LinkType.class);
+        fresh.links().forEach((type, linkedId) -> {
+            Land linked = lands.get(linkedId);
+            if (linked != null) links.put(type, linked);
+        });
+        land.getLinks().keySet().retainAll(links.keySet());
+        land.getLinks().putAll(links);
+    }
 
-        // Update the cache with the new land
-        if (updatedLand != null) {
-            lands.put(updatedLand.getId(), updatedLand);
-        }
+    private void forgetWithSubLands(Land land) {
+        for (SubLand subLand : List.copyOf(land.getSubLands().values())) forgetWithSubLands(subLand);
+        forget(land);
+    }
+
+    /** The lands covering whole worlds, as the database holds them (database thread). */
+    public Map<String, UUID> readWorldDefaults() {
+        return storage.getWorldsDefaultLands();
+    }
+
+    public void applyWorldDefaults(Map<String, UUID> defaults) {
+        Map<String, Land> resolved = new HashMap<>();
+        defaults.forEach((world, landId) -> {
+            Land land = lands.get(landId);
+            if (land != null) resolved.put(world, land);
+        });
+        worldsDefaultLands.keySet().retainAll(resolved.keySet());
+        worldsDefaultLands.putAll(resolved);
     }
 
     @Override
@@ -339,37 +440,37 @@ public class LandRepositoryImpl implements LandRepository {
     @Override
     public void addTrust(Land land, UUID uuid, Action action) {
         land.trust(uuid, action);
-        plugin.runAsyncQueued(() -> storage.addTrust(land, uuid, action));
+        save(land, () -> storage.addTrust(land, uuid, action));
     }
 
     @Override
     public void removeTrust(Land land, UUID uuid, Action action) {
         land.untrust(uuid, action);
-        plugin.runAsyncQueued(() -> storage.removeTrust(land, uuid, action));
+        save(land, () -> storage.removeTrust(land, uuid, action));
     }
 
     @Override
     public void addGlobalTrust(Land land, Action action) {
         land.trust(action);
-        plugin.runAsyncQueued(() -> storage.addGlobalTrust(land, action));
+        save(land, () -> storage.addGlobalTrust(land, action));
     }
 
     @Override
     public void removeGlobalTrust(Land land, Action action) {
         land.untrust(action);
-        plugin.runAsyncQueued(() -> storage.removeGlobalTrust(land, action));
+        save(land, () -> storage.removeGlobalTrust(land, action));
     }
 
     @Override
     public void addGuildTrust(Land land, Action action) {
         land.trustGuild(action);
-        plugin.runAsyncQueued(() -> storage.addGuildTrust(land, action));
+        save(land, () -> storage.addGuildTrust(land, action));
     }
 
     @Override
     public void removeGuildTrust(Land land, Action action) {
         land.untrustGuild(action);
-        plugin.runAsyncQueued(() -> storage.removeGuildTrust(land, action));
+        save(land, () -> storage.removeGuildTrust(land, action));
     }
 
     @Override
@@ -412,7 +513,10 @@ public class LandRepositoryImpl implements LandRepository {
     @Override
     public void setDefaultWorldLand(World world, Land land) {
         worldsDefaultLands.put(world.getName(), land);
-        storage.setWorldDefaultLand(world.getName(), land);
+        plugin.runAsyncQueued(() -> {
+            storage.setWorldDefaultLand(world.getName(), land);
+            changes.worldsChanged();
+        });
     }
 
     @Override
@@ -427,60 +531,60 @@ public class LandRepositoryImpl implements LandRepository {
     @Override
     public void addFlag(Land land, Flag flag) {
         land.getFlags().add(flag);
-        plugin.runAsyncQueued(() -> storage.addFlag(land, flag));
+        save(land, () -> storage.addFlag(land, flag));
     }
 
     @Override
     public void removeFlag(Land land, Flag flag) {
         land.getFlags().remove(flag);
-        plugin.runAsyncQueued(() -> storage.removeFlag(land, flag));
+        save(land, () -> storage.removeFlag(land, flag));
     }
 
     @Override
     public void addLink(Land land, LinkType link, Land with) {
         land.setLink(link, with);
-        plugin.runAsyncQueued(() -> storage.addLink(land, link, with));
+        save(land, () -> storage.addLink(land, link, with));
     }
 
     @Override
     public void removeLink(Land land, LinkType link) {
         land.removeLink(link);
-        plugin.runAsyncQueued(() -> storage.removeLink(land, link));
+        save(land, () -> storage.removeLink(land, link));
     }
 
     @Override
     public void addBan(Land land, UUID uuid) {
         land.getBans().add(uuid);
-        plugin.runAsyncQueued(() -> storage.addBan(land, uuid));
+        save(land, () -> storage.addBan(land, uuid));
     }
 
     @Override
     public void removeBan(Land land, UUID uuid) {
         land.getBans().remove(uuid);
-        plugin.runAsyncQueued(() -> storage.removeBan(land, uuid));
+        save(land, () -> storage.removeBan(land, uuid));
     }
 
     @Override
     public void addEffect(Land land, PotionEffectType effectType, int amplifier) {
         land.addEffect(effectType, amplifier);
-        plugin.runAsyncQueued(() -> storage.addEffect(land, effectType.getKey().toString(), amplifier));
+        save(land, () -> storage.addEffect(land, effectType.getKey().toString(), amplifier));
     }
 
     @Override
     public void removeEffect(Land land, PotionEffectType effectType) {
         land.removeEffect(effectType);
-        plugin.runAsyncQueued(() -> storage.removeEffect(land, effectType.getKey().toString()));
+        save(land, () -> storage.removeEffect(land, effectType.getKey().toString()));
     }
 
     @Override
     public void addCommand(Land land, LandEnterCommand command) {
         land.addCommand(command);
-        plugin.runAsyncQueued(() -> storage.addCommand(land, command));
+        save(land, () -> storage.addCommand(land, command));
     }
 
     @Override
     public void removeCommand(Land land, LandEnterCommand command) {
         land.removeCommand(command);
-        plugin.runAsyncQueued(() -> storage.removeCommand(command));
+        save(land, () -> storage.removeCommand(command));
     }
 }

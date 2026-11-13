@@ -51,7 +51,7 @@ public final class LandMenus {
         this.data = new LandMenuData(plugin);
     }
 
-    LandMenuData data() {
+    public LandMenuData data() {
         return data;
     }
 

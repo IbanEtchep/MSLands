@@ -248,6 +248,26 @@ public class SqlStorage implements Storage {
     }
 
     @Override
+    public @Nullable UUID getSuperLandId(UUID subLandId) {
+        UUID[] superLand = new UUID[1];
+        query("SELECT land_id FROM " + t.sublands() + " WHERE id = ?", p -> p.setString(1, subLandId.toString()),
+                r -> superLand[0] = uuid(r.getString("land_id")));
+        return superLand[0];
+    }
+
+    @Override
+    public Map<LinkType, UUID> getLinks(UUID landId) {
+        Map<LinkType, UUID> links = new EnumMap<>(LinkType.class);
+        query("SELECT linked_land_id, link_type FROM " + t.links() + " WHERE land_id = ?",
+                p -> p.setString(1, landId.toString()), r -> {
+                    UUID linked = uuid(r.getString("linked_land_id"));
+                    LinkType type = enumOf(LinkType.class, r.getString("link_type"));
+                    if (linked != null && type != null) links.put(type, linked);
+                });
+        return links;
+    }
+
+    @Override
     public Map<SChunk, UUID> getChunks() {
         Map<SChunk, UUID> chunks = new HashMap<>();
         query("SELECT server, world, x, z, land_id, created_at FROM " + t.chunks() + " WHERE server = ?",

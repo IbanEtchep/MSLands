@@ -13,6 +13,7 @@ import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.guild.ArtisanGuildsDataAccess;
 import fr.iban.lands.listeners.*;
 import fr.iban.lands.menu.LandMenus;
+import fr.iban.lands.menu.LandPlaceholders;
 import fr.iban.lands.menu.LandsModule;
 import fr.iban.lands.messages.LandMessages;
 import fr.iban.lands.model.land.Land;
@@ -23,6 +24,7 @@ import fr.iban.lands.storage.LandSchema;
 import fr.iban.lands.storage.LandTables;
 import fr.iban.lands.storage.LegacyImport;
 import fr.iban.lands.storage.SqlStorage;
+import fr.iban.lands.sync.LandSync;
 import fr.iban.lands.task.PotionEffectTask;
 import fr.iban.lands.utils.ChatInputs;
 import fr.iban.lands.utils.LandMap;
@@ -128,6 +130,19 @@ public final class LandsPlugin extends JavaPlugin {
 
         setupEconomy();
         hookGuilds();
+
+        // The other servers' changes to the lands, and this one's to them (MSLands had none).
+        try {
+            new LandSync(this, (LandRepositoryImpl) landRepository, api.getNetwork()).start();
+        } catch (RuntimeException e) {
+            getLogger().log(Level.WARNING, "Lands are not synchronised with the other servers", e);
+        }
+        // %lands_…%, for PlaceholderAPI too; removed by Artisan when this plugin disables.
+        try {
+            api.getPlaceholders().register(LandPlaceholders.NAMESPACE, new LandPlaceholders(this, menus.data()), true);
+        } catch (RuntimeException e) {
+            getLogger().warning("%" + LandPlaceholders.NAMESPACE + "_…% not registered: " + e.getMessage());
+        }
 
         registerListeners(
                 chatInputs,
