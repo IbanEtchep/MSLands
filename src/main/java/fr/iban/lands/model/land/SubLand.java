@@ -24,6 +24,12 @@ public class SubLand extends Land {
         this.server = server;
     }
 
+    @Override
+    public void refreshFrom(Land fresh) {
+        super.refreshFrom(fresh);
+        if (fresh instanceof SubLand sub) setCuboid(sub.cuboid, sub.server);
+    }
+
     public Cuboid getCuboid() {
         return cuboid;
     }

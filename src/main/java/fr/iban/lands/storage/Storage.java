@@ -30,6 +30,12 @@ public interface Storage {
     /** Land id → its links. */
     Map<UUID, Map<LinkType, UUID>> getLinks();
 
+    /** The land {@code subLandId} belongs to, null when it is not a sub-land (or gone). */
+    @Nullable UUID getSuperLandId(UUID subLandId);
+
+    /** The links of one land. */
+    Map<LinkType, UUID> getLinks(UUID landId);
+
     /** The chunks claimed on this server, with their land's id. */
     Map<SChunk, UUID> getChunks();
 

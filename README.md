@@ -44,6 +44,8 @@ dependencies { compileOnly("net.artisanmc:artisan-lands:2.0.0") }
 | Messages | `plugins/Artisan/modules/lands/lang/{fr,en}.yml` (modèle : `src/main/resources/lang/`) |
 | Menus et dialogs | `plugins/Artisan/modules/lands/menus/`, `dialogs/`, éditables dans l'éditeur Artisan (modèle : `src/main/resources/artisan-system/lands/`) |
 | Data sources et actions des menus | `menu/LandMenuData`, `menu/LandMenuActions`, déclarées dans `menu/LandsModule` |
+| Synchro réseau | `sync/LandSync` : après chaque écriture, les autres serveurs relisent le territoire (canaux Artisan `lands:land`, `lands:worlds`). Les tronçons restent propres à chaque serveur |
+| Placeholders | `menu/LandPlaceholders` : `%lands_here%`, `here_owner`, `here_type`, `lands`, `claims`, `claims_max`, `claims_remaining`, aussi pour PlaceholderAPI |
 | Commandes (`/land`, `/lands`, `/guildclaims`, `/addmaxclaim`…) | `commands/*`, déclarées à Artisan (`PlayerCommandRegistry`) par `LandsModule` : fichiers `plugins/Artisan/modules/lands/commands/*.yaml`, éditables dans l'éditeur |
 
 Une modification d'un menu livré = monter `LandsModule.SYSTEM_VERSION`. Les noms et arguments des
